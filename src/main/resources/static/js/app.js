@@ -76,7 +76,7 @@ const OfficerTermManagement = (function () {
                 : '<span class="badge-active-term">현재</span>';
 
             tr.innerHTML =
-                "<td>" + escapeHtml(term.positionName) + "</td>" +
+                "<td><span class=\"member-position-badge\">" + escapeHtml(term.positionName) + "</span></td>" +
                 "<td>" + escapeHtml(term.memberName) + " (" + escapeHtml(term.memberBaptismalName) + ")</td>" +
                 "<td>" + escapeHtml(term.startedOn) + "</td>" +
                 "<td>" + endedCell + "</td>" +

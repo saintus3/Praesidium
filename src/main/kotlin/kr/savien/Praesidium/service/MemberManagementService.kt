@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
+import java.time.LocalDate
 
 @Service
 @Transactional(readOnly = true)
@@ -22,12 +23,50 @@ class MemberManagementService(
 ) {
 
     fun list(): List<MemberManagementResponse> {
-        val currentPositionByMemberId = officerTermRepository.findAllCurrentWithPosition()
+        val today = LocalDate.now()
+        val currentTermByMemberId = officerTermRepository.findAllWithDetails()
+            .filter { term -> isTermActiveOn(term.startedOn, term.endedOn, today) }
             .groupBy { it.member.id }
-            .mapValues { (_, terms) -> terms.first().position.name }
+            .mapValues { (_, terms) -> terms.first() }
+        val currentPositionByMemberId = currentTermByMemberId.mapValues { (_, term) -> term.position.name }
 
-        return memberRepository.findAllByOrderByNameAsc().map {
+        val members = memberRepository.findAllByOrderByNameAsc()
+
+        val sortedMembers = members.sortedWith(
+            compareBy<Member> { member -> if (member.active == 1) 0 else 1 }
+                .thenBy { member -> currentTermByMemberId[member.id]?.position?.sortOrder ?: Int.MAX_VALUE }
+                .thenBy { member -> parseFlexibleDate(member.joinedOn) ?: LocalDate.MAX }
+                .thenBy { it.name }
+        )
+
+        return sortedMembers.map {
             it.toResponse(currentPositionByMemberId[it.id])
+        }
+    }
+
+    /** 오늘 날짜 기준으로 간부임기가 시작일 이후이고, 종료일 이전(또는 아직 종료되지 않음)인지 판단한다. */
+    private fun isTermActiveOn(startedOn: String, endedOn: String?, referenceDate: LocalDate): Boolean {
+        val started = parseFlexibleDate(startedOn)
+        if (started != null && started.isAfter(referenceDate)) return false
+
+        val ended = parseFlexibleDate(endedOn)
+        if (ended != null && ended.isBefore(referenceDate)) return false
+
+        return true
+    }
+
+    /** DB에 저장된 날짜 문자열이 "yyyy-MM-dd"와 "yyyy.M.d" 두 형식을 섞어 쓰고 있어 둘 다 지원한다. */
+    private fun parseFlexibleDate(value: String?): LocalDate? {
+        if (value.isNullOrBlank()) return null
+        val parts = value.split('-', '.').map { it.trim() }
+        if (parts.size != 3) return null
+        return try {
+            val year = parts[0].toInt()
+            val month = parts[1].toInt()
+            val day = parts[2].toInt()
+            LocalDate.of(year, month, day)
+        } catch (ex: Exception) {
+            null
         }
     }
 
