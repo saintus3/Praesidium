@@ -380,6 +380,12 @@ body {
     border-top: 2px solid var(--color-border, #e5e7eb);
 }
 
+.activity-count-subtotal-row td {
+    font-weight: 700;
+    background-color: #fafbfc;
+    border-top: 2px solid var(--color-border, #e5e7eb);
+}
+
 .finance-inline-input,
 .finance-inline-select {
     width: 100%;

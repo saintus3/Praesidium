@@ -952,6 +952,7 @@ const ActivityManagement = (function () {
 
     const headerRow = () => document.getElementById("activity-count-header");
     const tbody = () => document.getElementById("activity-count-tbody");
+    const subtotalRow = () => document.getElementById("activity-count-subtotal-row");
     const sortToggle = () => document.getElementById("activity-sort-toggle");
 
     let sortMode = "default";
@@ -1007,6 +1008,32 @@ const ActivityManagement = (function () {
             th.className = "col-center";
             th.textContent = col.shortName || col.name;
             row.appendChild(th);
+        });
+    }
+
+    function renderSubtotal(columns) {
+        const row = subtotalRow();
+        row.innerHTML = '<td colspan="2">소계</td>';
+        columns.forEach((col) => {
+            const td = document.createElement("td");
+            td.className = "col-center";
+            td.id = "activity-subtotal-" + col.activityTypeId;
+            td.textContent = "0";
+            row.appendChild(td);
+        });
+    }
+
+    function recalcSubtotal(columns) {
+        columns.forEach((col) => {
+            let sum = 0;
+            tbody()
+                .querySelectorAll('.activity-count-input[data-activity-type-id="' + col.activityTypeId + '"]')
+                .forEach((input) => {
+                    const value = Number(input.value);
+                    if (Number.isFinite(value)) sum += value;
+                });
+            const cell = document.getElementById("activity-subtotal-" + col.activityTypeId);
+            if (cell) cell.textContent = String(sum);
         });
     }
 
@@ -1070,6 +1097,7 @@ const ActivityManagement = (function () {
                 body: JSON.stringify({ memberId, activityTypeId, count }),
             });
             input.dataset.lastValue = String(count);
+            recalcSubtotal(lastColumns);
         } catch (err) {
             input.value = previousValue;
             window.alert(err.message);
@@ -1093,10 +1121,12 @@ const ActivityManagement = (function () {
             lastColumns = grid.columns;
             lastMembers = grid.members;
             renderHeader(lastColumns);
+            renderSubtotal(lastColumns);
             renderRows(lastColumns, sortedMembers());
             tbody().querySelectorAll(".activity-count-input").forEach((input) => {
                 input.dataset.lastValue = input.value;
             });
+            recalcSubtotal(lastColumns);
         } catch (err) {
             tbody().innerHTML =
                 '<tr><td colspan="2" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
