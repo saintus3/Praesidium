@@ -27,6 +27,7 @@ class AttendanceService(
         }
 
         val presentMemberIds = attendanceRepository.findAllByMeetingId(meetingId)
+            .filter { it.status == "PRESENT" }
             .map { it.member.id }
             .toSet()
 
@@ -53,17 +54,15 @@ class AttendanceService(
             .orElseThrow { ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 단원입니다. (id=${request.memberId})") }
 
         val existing = attendanceRepository.findByMeetingIdAndMemberId(meetingId, request.memberId)
+        val status = if (request.present) "PRESENT" else "ABSENT"
 
-        if (request.present) {
-            if (existing == null) {
-                attendanceRepository.save(
-                    Attendance(meeting = meeting, member = member, status = "PRESENT")
-                )
-            }
-        } else {
-            if (existing != null) {
-                attendanceRepository.delete(existing)
-            }
+        if (existing == null) {
+            attendanceRepository.save(
+                Attendance(meeting = meeting, member = member, status = status)
+            )
+        } else if (existing.status != status) {
+            existing.status = status
+            attendanceRepository.save(existing)
         }
     }
 }

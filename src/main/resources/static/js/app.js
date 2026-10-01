@@ -926,19 +926,22 @@ const MemberManagement = (function () {
         });
     });
 
-    const initialTarget =
-        window.location.hash && window.location.hash.length > 1
-            ? window.location.hash.substring(1)
-            : menuItems[0] && menuItems[0].dataset.target;
-
-    if (initialTarget) {
-        activateMenu(initialTarget);
-    }
-
+    const SESSION_STORAGE_KEY = "praesidium.selectedSessionId";
     const sessionSelect = document.getElementById("session-select");
+
     if (sessionSelect) {
+        const savedSessionId = window.localStorage.getItem(SESSION_STORAGE_KEY);
+        if (
+            savedSessionId &&
+            sessionSelect.querySelector('option[value="' + savedSessionId + '"]')
+        ) {
+            sessionSelect.value = savedSessionId;
+        } else {
+            window.localStorage.setItem(SESSION_STORAGE_KEY, sessionSelect.value);
+        }
+
         sessionSelect.addEventListener("change", (event) => {
-            console.log("선택된 회차:", event.target.value);
+            window.localStorage.setItem(SESSION_STORAGE_KEY, event.target.value);
             if (currentTarget === "attendance") {
                 AttendanceManagement.load();
             }
@@ -946,5 +949,14 @@ const MemberManagement = (function () {
                 AccountingManagement.load();
             }
         });
+    }
+
+    const initialTarget =
+        window.location.hash && window.location.hash.length > 1
+            ? window.location.hash.substring(1)
+            : menuItems[0] && menuItems[0].dataset.target;
+
+    if (initialTarget) {
+        activateMenu(initialTarget);
     }
 })();
