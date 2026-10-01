@@ -944,6 +944,143 @@ const ActivityItemManagement = (function () {
     };
 })();
 
+/* ---------- 활동 (Activity Counts) ---------- */
+const ActivityManagement = (function () {
+    const headerRow = () => document.getElementById("activity-count-header");
+    const tbody = () => document.getElementById("activity-count-tbody");
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    }
+
+    function getMeetingId() {
+        const sessionSelect = document.getElementById("session-select");
+        return sessionSelect ? sessionSelect.value : "";
+    }
+
+    async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            let message = "요청 처리 중 오류가 발생했습니다.";
+            try {
+                const body = await response.json();
+                message = body.detail || body.message || message;
+            } catch (e) {
+                /* ignore parse errors */
+            }
+            throw new Error(message);
+        }
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    function renderHeader(columns) {
+        const row = headerRow();
+        row.innerHTML = "<th>직책</th><th>이름</th>";
+        columns.forEach((col) => {
+            const th = document.createElement("th");
+            th.className = "col-center";
+            th.textContent = col.shortName || col.name;
+            row.appendChild(th);
+        });
+    }
+
+    function renderRows(columns, members) {
+        const body = tbody();
+        body.innerHTML = "";
+
+        if (!members.length) {
+            body.innerHTML =
+                '<tr><td colspan="' + (columns.length + 2) + '" class="table-empty">등록된 단원이 없습니다.</td></tr>';
+            return;
+        }
+
+        members.forEach((member) => {
+            const tr = document.createElement("tr");
+            const positionCell = member.positionName
+                ? '<span class="member-position-badge">' + escapeHtml(member.positionName) + "</span>"
+                : "";
+            let cells =
+                "<td>" + positionCell + "</td>" +
+                "<td>" + escapeHtml(member.memberName) + " (" + escapeHtml(member.memberBaptismalName) + ")</td>";
+
+            member.counts.forEach((cell) => {
+                cells +=
+                    '<td class="col-center">' +
+                    '<input type="number" min="0" step="1" class="finance-inline-input activity-count-input" ' +
+                    'data-member-id="' + member.memberId + '" data-activity-type-id="' + cell.activityTypeId + '" ' +
+                    'value="' + cell.count + '" /></td>';
+            });
+
+            tr.innerHTML = cells;
+            body.appendChild(tr);
+        });
+
+        body.querySelectorAll(".activity-count-input").forEach((input) => {
+            input.addEventListener("change", () => handleChange(input));
+        });
+    }
+
+    async function handleChange(input) {
+        const meetingId = getMeetingId();
+        if (!meetingId) return;
+
+        const memberId = Number(input.dataset.memberId);
+        const activityTypeId = Number(input.dataset.activityTypeId);
+        const previousValue = input.dataset.lastValue || "0";
+        const count = Number(input.value);
+
+        if (!Number.isFinite(count) || count < 0) {
+            window.alert("0 이상의 숫자를 입력해주세요.");
+            input.value = previousValue;
+            return;
+        }
+
+        input.disabled = true;
+        try {
+            await fetchJson("/api/meetings/" + meetingId + "/activity-counts", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ memberId, activityTypeId, count }),
+            });
+            input.dataset.lastValue = String(count);
+        } catch (err) {
+            input.value = previousValue;
+            window.alert(err.message);
+        } finally {
+            input.disabled = false;
+        }
+    }
+
+    async function load() {
+        const meetingId = getMeetingId();
+        if (!meetingId) {
+            tbody().innerHTML =
+                '<tr><td colspan="2" class="table-empty">선택된 회차가 없습니다.</td></tr>';
+            return;
+        }
+
+        tbody().innerHTML =
+            '<tr><td colspan="2" class="table-empty">불러오는 중...</td></tr>';
+        try {
+            const grid = await fetchJson("/api/meetings/" + meetingId + "/activity-counts");
+            renderHeader(grid.columns);
+            renderRows(grid.columns, grid.members);
+            tbody().querySelectorAll(".activity-count-input").forEach((input) => {
+                input.dataset.lastValue = input.value;
+            });
+        } catch (err) {
+            tbody().innerHTML =
+                '<tr><td colspan="2" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+        }
+    }
+
+    return { load };
+})();
+
 /* ---------- 좌측 메뉴 네비게이션 ---------- */
 (function () {
     const menuItems = document.querySelectorAll(".menu-item[data-target]");
@@ -1003,6 +1140,9 @@ const ActivityItemManagement = (function () {
         if (target === "activity-item-management") {
             ActivityItemManagement.init();
         }
+        if (target === "activity") {
+            ActivityManagement.load();
+        }
     }
 
     menuItems.forEach((item) => {
@@ -1033,6 +1173,9 @@ const ActivityItemManagement = (function () {
             }
             if (currentTarget === "accounting") {
                 AccountingManagement.load();
+            }
+            if (currentTarget === "activity") {
+                ActivityManagement.load();
             }
         });
     }
