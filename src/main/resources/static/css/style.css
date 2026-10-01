@@ -423,6 +423,11 @@ body {
 .activity-count-input {
     font-weight: 700;
     text-align: center;
+    color: #4b5563;
+}
+
+.activity-count-input.has-count {
+    color: #000000;
 }
 
 #activity-count-table th:nth-child(2),

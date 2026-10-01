@@ -1058,9 +1058,10 @@ const ActivityManagement = (function () {
                 '<div class="member-baptismal-sub">' + escapeHtml(member.memberBaptismalName) + "</div></td>";
 
             member.counts.forEach((cell) => {
+                const countClass = cell.count > 0 ? " has-count" : "";
                 cells +=
                     '<td class="col-center">' +
-                    '<input type="number" min="0" step="1" class="finance-inline-input activity-count-input" ' +
+                    '<input type="number" min="0" step="1" class="finance-inline-input activity-count-input' + countClass + '" ' +
                     'data-member-id="' + member.memberId + '" data-activity-type-id="' + cell.activityTypeId + '" ' +
                     'value="' + cell.count + '" /></td>';
             });
@@ -1097,6 +1098,7 @@ const ActivityManagement = (function () {
                 body: JSON.stringify({ memberId, activityTypeId, count }),
             });
             input.dataset.lastValue = String(count);
+            input.classList.toggle("has-count", count > 0);
             recalcSubtotal(lastColumns);
         } catch (err) {
             input.value = previousValue;
