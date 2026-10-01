@@ -10,7 +10,7 @@ interface OfficerTermRepository : JpaRepository<OfficerTerm, Int> {
         "SELECT ot FROM OfficerTerm ot " +
             "JOIN FETCH ot.position p " +
             "JOIN FETCH ot.member m " +
-            "ORDER BY p.sortOrder ASC, ot.startedOn DESC"
+            "ORDER BY CASE WHEN ot.endedOn IS NULL THEN 0 ELSE 1 END ASC, p.sortOrder ASC, ot.startedOn DESC"
     )
     fun findAllWithDetails(): List<OfficerTerm>
 
