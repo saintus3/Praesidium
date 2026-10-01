@@ -751,3 +751,59 @@ body {
 .form-row-checkbox input {
     width: auto;
 }
+
+/* ---------- 정렬 토글 스위치 ---------- */
+.sort-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-toggle-label {
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    background-color: #d1d5db;
+    transition: background-color 0.15s ease;
+    border-radius: 999px;
+}
+
+.switch-slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: transform 0.15s ease;
+    border-radius: 50%;
+}
+
+.switch input:checked + .switch-slider {
+    background-color: var(--color-accent);
+}
+
+.switch input:checked + .switch-slider::before {
+    transform: translateX(18px);
+}

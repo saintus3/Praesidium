@@ -946,8 +946,30 @@ const ActivityItemManagement = (function () {
 
 /* ---------- 활동 (Activity Counts) ---------- */
 const ActivityManagement = (function () {
+    const DOCUMENT_ORDER_NAMES = [
+        "오근종", "김형삼", "유순준", "송상훈", "신용", "이용택", "임재덕", "강태경", "정일운",
+    ];
+
     const headerRow = () => document.getElementById("activity-count-header");
     const tbody = () => document.getElementById("activity-count-tbody");
+    const sortToggle = () => document.getElementById("activity-sort-toggle");
+
+    let sortMode = "default";
+    let lastColumns = [];
+    let lastMembers = [];
+
+    function sortedMembers() {
+        if (sortMode !== "document") return lastMembers;
+        const indexed = lastMembers.map((member, index) => ({ member, index }));
+        indexed.sort((a, b) => {
+            const aIdx = DOCUMENT_ORDER_NAMES.indexOf(a.member.memberName);
+            const bIdx = DOCUMENT_ORDER_NAMES.indexOf(b.member.memberName);
+            const aRank = aIdx === -1 ? DOCUMENT_ORDER_NAMES.length + a.index : aIdx;
+            const bRank = bIdx === -1 ? DOCUMENT_ORDER_NAMES.length + b.index : bIdx;
+            return aRank - bRank;
+        });
+        return indexed.map((entry) => entry.member);
+    }
 
     function escapeHtml(value) {
         const div = document.createElement("div");
@@ -1067,8 +1089,10 @@ const ActivityManagement = (function () {
             '<tr><td colspan="2" class="table-empty">불러오는 중...</td></tr>';
         try {
             const grid = await fetchJson("/api/meetings/" + meetingId + "/activity-counts");
-            renderHeader(grid.columns);
-            renderRows(grid.columns, grid.members);
+            lastColumns = grid.columns;
+            lastMembers = grid.members;
+            renderHeader(lastColumns);
+            renderRows(lastColumns, sortedMembers());
             tbody().querySelectorAll(".activity-count-input").forEach((input) => {
                 input.dataset.lastValue = input.value;
             });
@@ -1076,6 +1100,18 @@ const ActivityManagement = (function () {
             tbody().innerHTML =
                 '<tr><td colspan="2" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
         }
+    }
+
+    const toggle = sortToggle();
+    if (toggle) {
+        toggle.addEventListener("change", () => {
+            sortMode = toggle.checked ? "document" : "default";
+            renderHeader(lastColumns);
+            renderRows(lastColumns, sortedMembers());
+            tbody().querySelectorAll(".activity-count-input").forEach((input) => {
+                input.dataset.lastValue = input.value;
+            });
+        });
     }
 
     return { load };
