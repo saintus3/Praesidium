@@ -356,23 +356,19 @@ const AccountingManagement = (function () {
             summary.items.forEach((item) => {
                 const tr = document.createElement("tr");
                 tr.dataset.id = item.id;
-                const isLocked = !item.deletable;
                 const kindSelect =
-                    '<select class="finance-inline-select finance-field-kind" data-id="' + item.id + '"' +
-                    (isLocked ? " disabled" : "") + ">" +
+                    '<select class="finance-inline-select finance-field-kind" data-id="' + item.id + '">' +
                     '<option value="INCOME"' + (item.kind === "INCOME" ? " selected" : "") + ">수입</option>" +
                     '<option value="EXPENSE"' + (item.kind === "EXPENSE" ? " selected" : "") + ">지출</option>" +
                     "</select>";
                 const descriptionInput =
                     '<input type="text" class="finance-inline-input finance-field-description" data-id="' +
-                    item.id + '" value="' + escapeHtml(item.description) + '"' +
-                    (isLocked ? " disabled" : "") + " />";
+                    item.id + '" value="' + escapeHtml(item.description) + '" />';
                 const amountInput =
                     '<input type="number" step="1" class="finance-inline-input finance-field-amount" data-id="' +
                     item.id + '" value="' + item.amount + '" />';
-                const actions = item.deletable
-                    ? '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>'
-                    : '<span class="badge-active-term">자동생성</span>';
+                const actions =
+                    '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>';
                 tr.innerHTML =
                     "<td>" + kindSelect + "</td>" +
                     "<td>" + descriptionInput + "</td>" +
