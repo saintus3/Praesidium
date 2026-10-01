@@ -52,16 +52,23 @@ class FinanceService(
 
     fun update(meetingId: Int, itemId: Int, request: FinanceItemRequest): FinanceSummaryResponse {
         requireMeeting(meetingId)
-        validate(request)
         val existing = financeRepository.findById(itemId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "회계항목을 찾을 수 없습니다. (id=$itemId)") }
         if (existing.meeting.id != meetingId) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "해당 회차의 회계항목이 아닙니다.")
         }
-        if (existing.description == CARRY_OVER_NAME) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "'$CARRY_OVER_NAME' 항목은 자동으로 계산되어 수정할 수 없습니다.")
-        }
-        if (request.description.trim() == CARRY_OVER_NAME) {
+        val isCarryOver = existing.description == CARRY_OVER_NAME
+        // 지지난주 비밀헌금은 이전 회차가 적자였을 경우 음수일 수 있어 금액 제한을 완화한다.
+        validate(request, allowNegativeAmount = isCarryOver)
+        if (isCarryOver) {
+            // 자동 생성 항목이지만 금액은 수동으로 보정할 수 있도록 허용한다. 구분/항목명은 고정한다.
+            if (request.kind != INCOME || request.description.trim() != CARRY_OVER_NAME) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "'$CARRY_OVER_NAME' 항목은 금액만 수정할 수 있습니다."
+                )
+            }
+        } else if (request.description.trim() == CARRY_OVER_NAME) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "'$CARRY_OVER_NAME' 항목명은 자동 계산 항목 전용입니다.")
         }
         financeRepository.save(
@@ -94,14 +101,14 @@ class FinanceService(
         meetingRepository.findById(meetingId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "회차를 찾을 수 없습니다. (id=$meetingId)") }
 
-    private fun validate(request: FinanceItemRequest) {
+    private fun validate(request: FinanceItemRequest, allowNegativeAmount: Boolean = false) {
         if (request.kind != INCOME && request.kind != EXPENSE) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "구분은 수입(INCOME) 또는 지출(EXPENSE)이어야 합니다.")
         }
         if (request.description.isBlank()) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "항목명은 필수입니다.")
         }
-        if (request.amount < 0) {
+        if (!allowNegativeAmount && request.amount < 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "금액은 0 이상이어야 합니다.")
         }
     }
@@ -114,14 +121,14 @@ class FinanceService(
         return ordered[idx + 1].id
     }
 
-    /** 해당 회차의 수입/지출 항목이 비어있으면 기본 항목(지지난주/지난주 비밀헌금, 꽃값)을 생성하고,
-     *  '지지난주 비밀헌금' 금액은 항상 이전 회차의 잔액과 일치하도록 갱신한다. */
+    /** 해당 회차의 수입/지출 항목이 비어있으면 기본 항목(지지난주/지난주 비밀헌금, 꽃값)을 생성한다.
+     *  '지지난주 비밀헌금'은 최초 생성 시에만 이전 회차의 잔액으로 자동 채워지며, 이후에는 사용자가 직접 수정할 수 있다. */
     private fun ensureDefaults(meetingId: Int): List<Finance> {
         var items = financeRepository.findAllByMeeting_IdOrderByIdAsc(meetingId)
-        val previousId = previousMeetingId(meetingId)
-        val carryAmount = if (previousId != null) balanceOf(ensureDefaults(previousId)) else 0L
 
         if (items.isEmpty()) {
+            val previousId = previousMeetingId(meetingId)
+            val carryAmount = if (previousId != null) balanceOf(ensureDefaults(previousId)) else 0L
             val meeting = meetingRepository.getReferenceById(meetingId)
             financeRepository.save(
                 Finance(meeting = meeting, kind = INCOME, description = CARRY_OVER_NAME, amount = carryAmount.toInt())
@@ -133,26 +140,14 @@ class FinanceService(
                 Finance(meeting = meeting, kind = EXPENSE, description = DEFAULT_EXPENSE_NAME, amount = 0)
             )
             items = financeRepository.findAllByMeeting_IdOrderByIdAsc(meetingId)
-        } else {
-            val carryItem = items.find { it.description == CARRY_OVER_NAME }
-            if (carryItem == null) {
-                val meeting = meetingRepository.getReferenceById(meetingId)
-                financeRepository.save(
-                    Finance(meeting = meeting, kind = INCOME, description = CARRY_OVER_NAME, amount = carryAmount.toInt())
-                )
-                items = financeRepository.findAllByMeeting_IdOrderByIdAsc(meetingId)
-            } else if (carryItem.amount.toLong() != carryAmount) {
-                financeRepository.save(
-                    Finance(
-                        id = carryItem.id,
-                        meeting = carryItem.meeting,
-                        kind = carryItem.kind,
-                        description = carryItem.description,
-                        amount = carryAmount.toInt()
-                    )
-                )
-                items = financeRepository.findAllByMeeting_IdOrderByIdAsc(meetingId)
-            }
+        } else if (items.none { it.description == CARRY_OVER_NAME }) {
+            val previousId = previousMeetingId(meetingId)
+            val carryAmount = if (previousId != null) balanceOf(ensureDefaults(previousId)) else 0L
+            val meeting = meetingRepository.getReferenceById(meetingId)
+            financeRepository.save(
+                Finance(meeting = meeting, kind = INCOME, description = CARRY_OVER_NAME, amount = carryAmount.toInt())
+            )
+            items = financeRepository.findAllByMeeting_IdOrderByIdAsc(meetingId)
         }
         return items
     }
@@ -170,7 +165,8 @@ class FinanceService(
                 kind = it.kind,
                 description = it.description,
                 amount = it.amount,
-                editable = it.description != CARRY_OVER_NAME
+                editable = true,
+                deletable = it.description != CARRY_OVER_NAME
             )
         }
         val totalIncome = items.filter { it.kind == INCOME }.sumOf { it.amount.toLong() }

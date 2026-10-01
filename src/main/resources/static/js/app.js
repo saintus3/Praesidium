@@ -356,10 +356,11 @@ const AccountingManagement = (function () {
             summary.items.forEach((item) => {
                 const tr = document.createElement("tr");
                 const kindLabel = item.kind === "INCOME" ? "수입" : "지출";
-                const actions = item.editable
-                    ? '<button type="button" class="btn-icon edit" data-id="' + item.id + '">수정</button>' +
-                      '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>'
-                    : '<span class="badge-active-term">자동계산</span>';
+                const actions =
+                    '<button type="button" class="btn-icon edit" data-id="' + item.id + '">수정</button>' +
+                    (item.deletable
+                        ? '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>'
+                        : '<span class="badge-active-term">자동생성</span>');
                 tr.innerHTML =
                     "<td>" + kindLabel + "</td>" +
                     "<td>" + escapeHtml(item.description) + "</td>" +
@@ -404,6 +405,8 @@ const AccountingManagement = (function () {
         idField().value = "";
         form().reset();
         kindField().value = "EXPENSE";
+        kindField().disabled = false;
+        descriptionField().disabled = false;
         errorBox().textContent = "";
         modal().classList.add("is-active");
     }
@@ -411,12 +414,15 @@ const AccountingManagement = (function () {
     function openEditModal(id) {
         const item = currentItems.find((i) => i.id === id);
         if (!item || !item.editable) return;
+        const isLocked = !item.deletable;
         document.getElementById("finance-modal-title").textContent = "회계항목 수정";
         idField().value = item.id;
         kindField().value = item.kind;
         descriptionField().value = item.description;
         amountField().value = item.amount;
-        errorBox().textContent = "";
+        kindField().disabled = isLocked;
+        descriptionField().disabled = isLocked;
+        errorBox().textContent = isLocked ? "자동 생성된 항목은 금액만 수정할 수 있습니다." : "";
         modal().classList.add("is-active");
     }
 

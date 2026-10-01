@@ -5,7 +5,8 @@ data class FinanceItemResponse(
     val kind: String,
     val description: String,
     val amount: Int,
-    val editable: Boolean
+    val editable: Boolean,
+    val deletable: Boolean
 )
 
 data class FinanceSummaryResponse(
