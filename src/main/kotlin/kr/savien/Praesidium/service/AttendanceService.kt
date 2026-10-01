@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.LocalDate
 
 @Service
 @Transactional(readOnly = true)
@@ -22,9 +23,9 @@ class AttendanceService(
 ) {
 
     fun listAttendance(meetingId: Int): List<AttendanceMemberResponse> {
-        if (!meetingRepository.existsById(meetingId)) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "회차를 찾을 수 없습니다. (id=$meetingId)")
-        }
+        val meeting = meetingRepository.findById(meetingId)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "회차를 찾을 수 없습니다. (id=$meetingId)") }
+        val meetingDate = parseFlexibleDate(meeting.meetingDate)
 
         val presentMemberIds = attendanceRepository.findAllByMeetingId(meetingId)
             .filter { it.status == "PRESENT" }
@@ -35,15 +36,17 @@ class AttendanceService(
             .groupBy { it.member.id }
             .mapValues { (_, terms) -> terms.first().position.name }
 
-        return memberRepository.findAllByOrderByNameAsc().map { member ->
-            AttendanceMemberResponse(
-                memberId = member.id,
-                memberName = member.name,
-                memberBaptismalName = member.baptismalName,
-                positionName = currentPositionByMemberId[member.id],
-                present = presentMemberIds.contains(member.id)
-            )
-        }
+        return memberRepository.findAllByOrderByNameAsc()
+            .filter { member -> isMemberOfMeetingDate(member.joinedOn, member.leftOn, meetingDate) }
+            .map { member ->
+                AttendanceMemberResponse(
+                    memberId = member.id,
+                    memberName = member.name,
+                    memberBaptismalName = member.baptismalName,
+                    positionName = currentPositionByMemberId[member.id],
+                    present = presentMemberIds.contains(member.id)
+                )
+            }
     }
 
     @Transactional
@@ -65,4 +68,33 @@ class AttendanceService(
             attendanceRepository.save(existing)
         }
     }
+
+    /** 회차 날짜 기준으로 입단(joinedOn) 이후, 탈단(leftOn) 이전(또는 미탈단)인 단원인지 판단한다. */
+    private fun isMemberOfMeetingDate(joinedOn: String?, leftOn: String?, meetingDate: LocalDate?): Boolean {
+        if (meetingDate == null) return true
+
+        val joined = parseFlexibleDate(joinedOn)
+        if (joined != null && joined.isAfter(meetingDate)) return false
+
+        val left = parseFlexibleDate(leftOn)
+        if (left != null && left.isBefore(meetingDate)) return false
+
+        return true
+    }
+
+    /** DB에 저장된 날짜 문자열이 "yyyy-MM-dd"와 "yyyy.M.d" 두 형식을 섞어 쓰고 있어 둘 다 지원한다. */
+    private fun parseFlexibleDate(value: String?): LocalDate? {
+        if (value.isNullOrBlank()) return null
+        val parts = value.split('-', '.').map { it.trim() }
+        if (parts.size != 3) return null
+        return try {
+            val year = parts[0].toInt()
+            val month = parts[1].toInt()
+            val day = parts[2].toInt()
+            LocalDate.of(year, month, day)
+        } catch (ex: Exception) {
+            null
+        }
+    }
 }
+
