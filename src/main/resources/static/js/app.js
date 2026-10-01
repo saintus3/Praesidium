@@ -886,6 +886,64 @@ const MemberManagement = (function () {
     };
 })();
 
+/* ---------- 활동항목관리 (Activity Item Management) ---------- */
+const ActivityItemManagement = (function () {
+    const tbody = () => document.getElementById("activity-item-tbody");
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error("활동항목 데이터를 불러오지 못했습니다.");
+        }
+        return response.json();
+    }
+
+    function render(items) {
+        const body = tbody();
+        body.innerHTML = "";
+
+        if (!items.length) {
+            body.innerHTML =
+                '<tr><td colspan="4" class="table-empty">등록된 활동항목이 없습니다.</td></tr>';
+            return;
+        }
+
+        items.forEach((item) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+                "<td>" + escapeHtml(item.categoryName) + "</td>" +
+                "<td>" + escapeHtml(item.name) + "</td>" +
+                "<td>" + escapeHtml(item.shortName) + "</td>" +
+                "<td>" + escapeHtml(item.unit) + "</td>";
+            body.appendChild(tr);
+        });
+    }
+
+    async function load() {
+        tbody().innerHTML =
+            '<tr><td colspan="4" class="table-empty">불러오는 중...</td></tr>';
+        try {
+            const items = await fetchJson("/api/activity-items");
+            render(items);
+        } catch (err) {
+            tbody().innerHTML =
+                '<tr><td colspan="4" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+        }
+    }
+
+    return {
+        init() {
+            load();
+        },
+    };
+})();
+
 /* ---------- 좌측 메뉴 네비게이션 ---------- */
 (function () {
     const menuItems = document.querySelectorAll(".menu-item[data-target]");
@@ -941,6 +999,9 @@ const MemberManagement = (function () {
         }
         if (target === "member-management") {
             MemberManagement.init();
+        }
+        if (target === "activity-item-management") {
+            ActivityItemManagement.init();
         }
     }
 
