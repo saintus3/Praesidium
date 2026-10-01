@@ -419,6 +419,12 @@ body {
     text-align: center;
 }
 
+#activity-count-table th:nth-child(2),
+#activity-count-table td:nth-child(2) {
+    width: 140px;
+    white-space: nowrap;
+}
+
 .attendance-checkbox {
     width: 18px;
     height: 18px;
