@@ -807,3 +807,9 @@ body {
 .switch input:checked + .switch-slider::before {
     transform: translateX(18px);
 }
+
+.member-baptismal-sub {
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+    font-weight: 400;
+}

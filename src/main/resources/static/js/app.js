@@ -1027,7 +1027,8 @@ const ActivityManagement = (function () {
                 : "";
             let cells =
                 "<td>" + positionCell + "</td>" +
-                "<td>" + escapeHtml(member.memberName) + " (" + escapeHtml(member.memberBaptismalName) + ")</td>";
+                "<td>" + escapeHtml(member.memberName) +
+                '<div class="member-baptismal-sub">' + escapeHtml(member.memberBaptismalName) + "</div></td>";
 
             member.counts.forEach((cell) => {
                 cells +=
