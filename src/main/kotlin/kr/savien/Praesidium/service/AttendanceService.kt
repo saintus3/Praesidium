@@ -1,6 +1,7 @@
 package kr.savien.Praesidium.service
 
 import kr.savien.Praesidium.domain.Attendance
+import kr.savien.Praesidium.domain.Member
 import kr.savien.Praesidium.dto.AttendanceMemberResponse
 import kr.savien.Praesidium.dto.AttendanceUpdateRequest
 import kr.savien.Praesidium.repository.AttendanceRepository
@@ -32,21 +33,31 @@ class AttendanceService(
             .map { it.member.id }
             .toSet()
 
-        val currentPositionByMemberId = officerTermRepository.findAllCurrentWithPosition()
+        val currentTermByMemberId = officerTermRepository.findAllWithDetails()
+            .filter { term -> isTermActiveOn(term.startedOn, term.endedOn, meetingDate) }
             .groupBy { it.member.id }
-            .mapValues { (_, terms) -> terms.first().position.name }
+            .mapValues { (_, terms) -> terms.first() }
 
-        return memberRepository.findAllByOrderByNameAsc()
+        val members = memberRepository.findAllByOrderByNameAsc()
             .filter { member -> isMemberOfMeetingDate(member.joinedOn, member.leftOn, meetingDate) }
-            .map { member ->
-                AttendanceMemberResponse(
-                    memberId = member.id,
-                    memberName = member.name,
-                    memberBaptismalName = member.baptismalName,
-                    positionName = currentPositionByMemberId[member.id],
-                    present = presentMemberIds.contains(member.id)
-                )
-            }
+
+        val sortedMembers = members.sortedWith(
+            compareBy<Member> { member ->
+                currentTermByMemberId[member.id]?.position?.sortOrder ?: Int.MAX_VALUE
+            }.thenBy { member ->
+                parseFlexibleDate(member.joinedOn) ?: LocalDate.MAX
+            }.thenBy { it.name }
+        )
+
+        return sortedMembers.map { member ->
+            AttendanceMemberResponse(
+                memberId = member.id,
+                memberName = member.name,
+                memberBaptismalName = member.baptismalName,
+                positionName = currentTermByMemberId[member.id]?.position?.name,
+                present = presentMemberIds.contains(member.id)
+            )
+        }
     }
 
     @Transactional
@@ -78,6 +89,19 @@ class AttendanceService(
 
         val left = parseFlexibleDate(leftOn)
         if (left != null && left.isBefore(meetingDate)) return false
+
+        return true
+    }
+
+    /** 회차 날짜 기준으로 간부임기가 시작일 이후이고, 종료일 이전(또는 아직 종료되지 않음)인지 판단한다. */
+    private fun isTermActiveOn(startedOn: String, endedOn: String?, meetingDate: LocalDate?): Boolean {
+        if (meetingDate == null) return endedOn == null
+
+        val started = parseFlexibleDate(startedOn)
+        if (started != null && started.isAfter(meetingDate)) return false
+
+        val ended = parseFlexibleDate(endedOn)
+        if (ended != null && ended.isBefore(meetingDate)) return false
 
         return true
     }
