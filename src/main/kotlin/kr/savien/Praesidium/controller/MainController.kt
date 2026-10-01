@@ -1,23 +1,27 @@
 package kr.savien.Praesidium.controller
 
+import kr.savien.Praesidium.repository.MeetingRepository
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 
 @Controller
-class MainController {
+class MainController(private val meetingRepository: MeetingRepository) {
 
     @GetMapping("/")
     fun index(model: Model): String {
-        val sessions = listOf(
-            SessionDto("12", "2026년도 하반기 (12회차)"),
-            SessionDto("11", "2026년도 상반기 (11회차)"),
-            SessionDto("10", "2025년도 하반기 (10회차)"),
-            SessionDto("9", "2025년도 상반기 (9회차)")
-        );
-        model.addAttribute("sessions", sessions);
-        model.addAttribute("currentSession", "12");
-        return "index";
+        val meetings = meetingRepository.findAllByOrderBySequenceDescMeetingDateDesc()
+        val sessions = meetings.map { meeting ->
+            val label = if (meeting.sequence != null) {
+                "${meeting.sequence}회차 (${meeting.meetingDate})"
+            } else {
+                meeting.meetingDate
+            }
+            SessionDto(meeting.id.toString(), label)
+        }
+        model.addAttribute("sessions", sessions)
+        model.addAttribute("currentSession", sessions.firstOrNull()?.id ?: "")
+        return "index"
     }
 }
 

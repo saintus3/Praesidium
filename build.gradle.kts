@@ -29,9 +29,8 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-thymeleaf-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-	runtimeOnly("org.mariadb:mariadb-java-client:3.3.3")
+	runtimeOnly("org.mariadb.jdbc:mariadb-java-client:3.5.9")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	runtimeOnly("org.mariadb:mariadb-java-client:3.3.3")
 }
 
 kotlin {
