@@ -355,16 +355,28 @@ const AccountingManagement = (function () {
         } else {
             summary.items.forEach((item) => {
                 const tr = document.createElement("tr");
-                const kindLabel = item.kind === "INCOME" ? "수입" : "지출";
-                const actions =
-                    '<button type="button" class="btn-icon edit" data-id="' + item.id + '">수정</button>' +
-                    (item.deletable
-                        ? '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>'
-                        : '<span class="badge-active-term">자동생성</span>');
+                tr.dataset.id = item.id;
+                const isLocked = !item.deletable;
+                const kindSelect =
+                    '<select class="finance-inline-select finance-field-kind" data-id="' + item.id + '"' +
+                    (isLocked ? " disabled" : "") + ">" +
+                    '<option value="INCOME"' + (item.kind === "INCOME" ? " selected" : "") + ">수입</option>" +
+                    '<option value="EXPENSE"' + (item.kind === "EXPENSE" ? " selected" : "") + ">지출</option>" +
+                    "</select>";
+                const descriptionInput =
+                    '<input type="text" class="finance-inline-input finance-field-description" data-id="' +
+                    item.id + '" value="' + escapeHtml(item.description) + '"' +
+                    (isLocked ? " disabled" : "") + " />";
+                const amountInput =
+                    '<input type="number" step="1" class="finance-inline-input finance-field-amount" data-id="' +
+                    item.id + '" value="' + item.amount + '" />';
+                const actions = item.deletable
+                    ? '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>'
+                    : '<span class="badge-active-term">자동생성</span>';
                 tr.innerHTML =
-                    "<td>" + kindLabel + "</td>" +
-                    "<td>" + escapeHtml(item.description) + "</td>" +
-                    '<td class="col-right">' + formatAmount(item.amount) + "</td>" +
+                    "<td>" + kindSelect + "</td>" +
+                    "<td>" + descriptionInput + "</td>" +
+                    '<td class="col-right">' + amountInput + "</td>" +
                     '<td class="col-actions">' + actions + "</td>";
                 body.appendChild(tr);
             });
@@ -372,9 +384,11 @@ const AccountingManagement = (function () {
 
         balanceCell().textContent = formatAmount(summary.balance);
 
-        body.querySelectorAll(".btn-icon.edit").forEach((btn) => {
-            btn.addEventListener("click", () => openEditModal(Number(btn.dataset.id)));
-        });
+        body.querySelectorAll(".finance-field-kind, .finance-field-description, .finance-field-amount").forEach(
+            (field) => {
+                field.addEventListener("change", () => handleInlineSave(Number(field.dataset.id)));
+            }
+        );
         body.querySelectorAll(".btn-icon.delete").forEach((btn) => {
             btn.addEventListener("click", () => handleDelete(Number(btn.dataset.id)));
         });
@@ -411,23 +425,38 @@ const AccountingManagement = (function () {
         modal().classList.add("is-active");
     }
 
-    function openEditModal(id) {
-        const item = currentItems.find((i) => i.id === id);
-        if (!item || !item.editable) return;
-        const isLocked = !item.deletable;
-        document.getElementById("finance-modal-title").textContent = "회계항목 수정";
-        idField().value = item.id;
-        kindField().value = item.kind;
-        descriptionField().value = item.description;
-        amountField().value = item.amount;
-        kindField().disabled = isLocked;
-        descriptionField().disabled = isLocked;
-        errorBox().textContent = isLocked ? "자동 생성된 항목은 금액만 수정할 수 있습니다." : "";
-        modal().classList.add("is-active");
-    }
-
     function closeModal() {
         modal().classList.remove("is-active");
+    }
+
+    async function handleInlineSave(id) {
+        const meetingId = getMeetingId();
+        if (!meetingId) return;
+
+        const row = tbody().querySelector('tr[data-id="' + id + '"]');
+        if (!row) return;
+
+        const kindEl = row.querySelector(".finance-field-kind");
+        const descriptionEl = row.querySelector(".finance-field-description");
+        const amountEl = row.querySelector(".finance-field-amount");
+
+        const payload = {
+            kind: kindEl.value,
+            description: descriptionEl.value,
+            amount: Number(amountEl.value),
+        };
+
+        try {
+            const summary = await fetchJson("/api/meetings/" + meetingId + "/finance/" + id, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            renderSummary(summary);
+        } catch (err) {
+            window.alert(err.message);
+            load();
+        }
     }
 
     async function handleSubmit(event) {
@@ -443,15 +472,9 @@ const AccountingManagement = (function () {
             amount: Number(amountField().value),
         };
 
-        const id = idField().value;
-        const url = id
-            ? "/api/meetings/" + meetingId + "/finance/" + id
-            : "/api/meetings/" + meetingId + "/finance";
-        const method = id ? "PUT" : "POST";
-
         try {
-            const summary = await fetchJson(url, {
-                method,
+            const summary = await fetchJson("/api/meetings/" + meetingId + "/finance", {
+                method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });

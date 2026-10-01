@@ -380,6 +380,40 @@ body {
     border-top: 2px solid var(--color-border, #e5e7eb);
 }
 
+.finance-inline-input,
+.finance-inline-select {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font: inherit;
+    color: inherit;
+}
+
+.finance-inline-input {
+    text-align: right;
+}
+
+.finance-inline-input:hover,
+.finance-inline-select:hover {
+    border-color: var(--color-border, #e5e7eb);
+}
+
+.finance-inline-input:focus,
+.finance-inline-select:focus {
+    border-color: var(--color-accent);
+    background: #fff;
+    outline: none;
+}
+
+.finance-inline-input:disabled,
+.finance-inline-select:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    background: transparent;
+}
+
 .attendance-checkbox {
     width: 18px;
     height: 18px;
