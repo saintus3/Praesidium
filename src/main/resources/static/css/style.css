@@ -414,6 +414,11 @@ body {
     background: transparent;
 }
 
+.activity-count-input {
+    font-weight: 700;
+    text-align: center;
+}
+
 .attendance-checkbox {
     width: 18px;
     height: 18px;
