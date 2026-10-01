@@ -423,7 +423,7 @@ body {
 .activity-count-input {
     font-weight: 700;
     text-align: center;
-    color: #4b5563;
+    color: lightgray;
 }
 
 .activity-count-input.has-count {
