@@ -436,6 +436,47 @@ body {
     white-space: nowrap;
 }
 
+/* ---------- 월례보고 (Monthly Report) ---------- */
+.monthly-report-toolbar {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 20px;
+}
+
+.monthly-report-range {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.monthly-report-summary {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.monthly-report-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 22px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: #fafbfc;
+}
+
+.monthly-report-stat-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.monthly-report-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-accent);
+}
+
 .attendance-checkbox {
     width: 18px;
     height: 18px;

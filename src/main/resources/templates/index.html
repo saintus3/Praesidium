@@ -346,7 +346,23 @@
                     <div class="placeholder-box">활동(월별) 통계 화면 영역 (준비 중)</div>
                 </div>
                 <div data-panel="monthly-report">
-                    <div class="placeholder-box">월례보고 화면 영역 (준비 중)</div>
+                    <div class="panel-toolbar monthly-report-toolbar">
+                        <div class="session-select-wrap">
+                            <label for="monthly-report-select">년-월</label>
+                            <select id="monthly-report-select" class="session-select"></select>
+                        </div>
+                        <div class="monthly-report-range" id="monthly-report-range">-</div>
+                    </div>
+                    <div class="monthly-report-summary" id="monthly-report-summary">
+                        <div class="monthly-report-stat">
+                            <span class="monthly-report-stat-label">간부</span>
+                            <span class="monthly-report-stat-value" id="monthly-report-officer">-</span>
+                        </div>
+                        <div class="monthly-report-stat">
+                            <span class="monthly-report-stat-label">단원</span>
+                            <span class="monthly-report-stat-value" id="monthly-report-member">-</span>
+                        </div>
+                    </div>
                 </div>
                 <div data-panel="project-report">
                     <div class="placeholder-box">사업보고 화면 영역 (준비 중)</div>

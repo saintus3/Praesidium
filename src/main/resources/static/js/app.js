@@ -1150,6 +1150,81 @@ const ActivityManagement = (function () {
     return { load };
 })();
 
+/* ---------- 월례보고 (Monthly Report) ---------- */
+const MonthlyReportManagement = (function () {
+    let initialized = false;
+
+    const select = () => document.getElementById("monthly-report-select");
+    const rangeLabel = () => document.getElementById("monthly-report-range");
+    const officerValue = () => document.getElementById("monthly-report-officer");
+    const memberValue = () => document.getElementById("monthly-report-member");
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error("월례보고 데이터를 불러오지 못했습니다.");
+        }
+        return response.json();
+    }
+
+    function formatStat(present, total) {
+        return present + "/" + total;
+    }
+
+    async function loadReport(yearMonth) {
+        rangeLabel().textContent = "불러오는 중...";
+        officerValue().textContent = "-";
+        memberValue().textContent = "-";
+        try {
+            const report = await fetchJson(
+                "/api/monthly-reports?yearMonth=" + encodeURIComponent(yearMonth)
+            );
+            rangeLabel().textContent = report.meetingRangeLabel;
+            officerValue().textContent =
+                "간부(" + formatStat(report.officerPresent, report.officerTotal) + ")";
+            memberValue().textContent =
+                "단원(" + formatStat(report.memberPresent, report.memberTotal) + ")";
+        } catch (err) {
+            rangeLabel().textContent = escapeHtml(err.message);
+        }
+    }
+
+    async function init() {
+        const sel = select();
+        if (!sel) return;
+
+        if (!initialized) {
+            initialized = true;
+            try {
+                const months = await fetchJson("/api/monthly-reports/months");
+                sel.innerHTML = months
+                    .map((m) => '<option value="' + m + '">' + m + "</option>")
+                    .join("");
+            } catch (err) {
+                sel.innerHTML = "";
+                rangeLabel().textContent = escapeHtml(err.message);
+                return;
+            }
+
+            sel.addEventListener("change", () => {
+                if (sel.value) loadReport(sel.value);
+            });
+        }
+
+        if (sel.value) {
+            await loadReport(sel.value);
+        }
+    }
+
+    return { init };
+})();
+
 /* ---------- 좌측 메뉴 네비게이션 ---------- */
 (function () {
     const menuItems = document.querySelectorAll(".menu-item[data-target]");
@@ -1211,6 +1286,9 @@ const ActivityManagement = (function () {
         }
         if (target === "activity") {
             ActivityManagement.load();
+        }
+        if (target === "monthly-report") {
+            MonthlyReportManagement.init();
         }
     }
 
