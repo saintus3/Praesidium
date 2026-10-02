@@ -24,6 +24,14 @@
                         <span>주요일정</span>
                     </button>
                 </li>
+                <li>
+                    <button type="button" class="menu-item" data-target="legio-manual" data-label="레지오교본" data-category="레지오교본">
+                        <span class="menu-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        </span>
+                        <span>레지오교본</span>
+                    </button>
+                </li>
             </ul>
         </nav>
 
@@ -221,6 +229,25 @@
                     </div>
                 </div>
 
+                <div data-panel="legio-manual">
+                    <div class="legio-manual-section">
+                        <p class="legio-manual-notice">
+                            레지오 마리애 교본은 Concilium Legionis Mariae가 저작권을 보유한 자료이므로,
+                            본 화면에 원문 전체를 직접 게시해드릴 수 없습니다.
+                        </p>
+                        <p class="legio-manual-notice">
+                            공식 교본은 한국 레지오 마리애 세나뚜스 또는
+                            <a href="https://www.legionofmary.ie/handbook" target="_blank" rel="noopener">legionofmary.ie</a>
+                            공식 사이트에서 확인하실 수 있습니다.
+                        </p>
+                        <p class="legio-manual-notice">
+                            단체에서 합법적으로 보유한 교본 PDF 파일이 있다면 아래 영역에 임베드하거나
+                            다운로드 링크를 연결하는 방식으로 이 화면을 채울 수 있도록 구성해 두었습니다.
+                        </p>
+                        <div class="placeholder-box">레지오교본 내용 영역 (자료 등록 후 표시됩니다)</div>
+                    </div>
+                </div>
+
                 <div data-panel="attendance">
                     <div class="table-wrap">
                         <table class="data-table">
@@ -335,11 +362,12 @@
                                         <th>카테고리</th>
                                         <th>활동항목</th>
                                         <th class="col-center">횟수</th>
+                                        <th class="col-center">작업</th>
                                     </tr>
                                 </thead>
                                 <tbody id="activity-extra-tbody">
                                     <tr>
-                                        <td colspan="4" class="table-empty">불러오는 중...</td>
+                                        <td colspan="5" class="table-empty">불러오는 중...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -564,6 +592,36 @@
             <p class="form-error" id="schedule-event-error"></p>
             <div class="modal-actions">
                 <button type="button" class="btn-secondary" id="schedule-event-cancel">취소</button>
+                <button type="submit" class="btn-primary">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="activity-extra-modal">
+    <div class="modal">
+        <h3 id="activity-extra-modal-title">활동사항 수정</h3>
+        <form id="activity-extra-form">
+            <input type="hidden" id="activity-extra-id" value="" />
+            <div class="form-row">
+                <label for="activity-extra-member">활동단원</label>
+                <select id="activity-extra-member" required></select>
+            </div>
+            <div class="form-row">
+                <label for="activity-extra-category">활동카테고리</label>
+                <select id="activity-extra-category" required></select>
+            </div>
+            <div class="form-row">
+                <label for="activity-extra-item">활동항목</label>
+                <select id="activity-extra-item" required></select>
+            </div>
+            <div class="form-row">
+                <label for="activity-extra-count">횟수</label>
+                <input type="number" id="activity-extra-count" min="0" required />
+            </div>
+            <p class="form-error" id="activity-extra-error"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="activity-extra-cancel">취소</button>
                 <button type="submit" class="btn-primary">저장</button>
             </div>
         </form>

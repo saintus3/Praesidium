@@ -116,7 +116,9 @@ class ActivityCountService(
                     memberId = it.member!!.id,
                     memberName = it.member!!.name,
                     memberBaptismalName = it.member!!.baptismalName,
+                    categoryId = it.activityType.category.id,
                     categoryName = it.activityType.category.name,
+                    activityTypeId = it.activityType.id,
                     activityTypeName = it.activityType.name,
                     shortName = it.activityType.shortName,
                     unit = it.activityType.unit,
@@ -149,6 +151,46 @@ class ActivityCountService(
             existing.count = request.count
             activityCountRepository.save(existing)
         }
+    }
+
+    /** 이번 회차 등록 활동 목록에서 특정 레코드를 수정한다. (단원/활동항목/횟수 변경 가능) */
+    @Transactional
+    fun updateExtra(meetingId: Int, id: Int, request: ActivityCountUpdateRequest) {
+        val record = activityCountRepository.findById(id)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다. (id=$id)") }
+        if (record.meeting.id != meetingId) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다. (id=$id)")
+        }
+        val member = memberRepository.findById(request.memberId)
+            .orElseThrow { ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 단원입니다. (id=${request.memberId})") }
+        val activityType = activityTypeRepository.findById(request.activityTypeId)
+            .orElseThrow { ResponseStatusException(HttpStatus.BAD_REQUEST, "존재하지 않는 활동항목입니다. (id=${request.activityTypeId})") }
+        if (request.count < 0) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "활동 횟수는 0 이상이어야 합니다.")
+        }
+
+        val duplicate = activityCountRepository.findByMeeting_IdAndMember_IdAndActivityType_Id(
+            meetingId, request.memberId, request.activityTypeId
+        )
+        if (duplicate != null && duplicate.id != id) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "해당 단원/활동항목 조합은 이미 등록되어 있습니다.")
+        }
+
+        record.member = member
+        record.activityType = activityType
+        record.count = request.count
+        activityCountRepository.save(record)
+    }
+
+    /** 이번 회차 등록 활동 목록에서 특정 레코드를 삭제한다. */
+    @Transactional
+    fun deleteExtra(meetingId: Int, id: Int) {
+        val record = activityCountRepository.findById(id)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다. (id=$id)") }
+        if (record.meeting.id != meetingId) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다. (id=$id)")
+        }
+        activityCountRepository.deleteById(id)
     }
 
     /** 회차 날짜 기준으로 입단(joinedOn) 이후, 탈단(leftOn) 이전(또는 미탈단)인 단원인지 판단한다. */

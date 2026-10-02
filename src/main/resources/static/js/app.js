@@ -1492,6 +1492,7 @@ const ActivityRegisterManagement = (function () {
     let initialized = false;
     let activityItems = [];
     let members = [];
+    let lastExtraItems = [];
 
     const form = () => document.getElementById("activity-register-form");
     const errorBox = () => document.getElementById("activity-register-error");
@@ -1500,6 +1501,15 @@ const ActivityRegisterManagement = (function () {
     const itemField = () => document.getElementById("activity-register-item");
     const countField = () => document.getElementById("activity-register-count");
     const extraTbody = () => document.getElementById("activity-extra-tbody");
+
+    const extraModal = () => document.getElementById("activity-extra-modal");
+    const extraForm = () => document.getElementById("activity-extra-form");
+    const extraErrorBox = () => document.getElementById("activity-extra-error");
+    const extraIdField = () => document.getElementById("activity-extra-id");
+    const extraMemberField = () => document.getElementById("activity-extra-member");
+    const extraCategoryField = () => document.getElementById("activity-extra-category");
+    const extraItemField = () => document.getElementById("activity-extra-item");
+    const extraCountField = () => document.getElementById("activity-extra-count");
 
     function getMeetingId() {
         const sessionSelect = document.getElementById("session-select");
@@ -1582,12 +1592,13 @@ const ActivityRegisterManagement = (function () {
     }
 
     function renderExtraRows(items) {
+        lastExtraItems = items;
         const body = extraTbody();
         body.innerHTML = "";
 
         if (!items.length) {
             body.innerHTML =
-                '<tr><td colspan="4" class="table-empty">이번 회차에 등록된 추가 활동이 없습니다.</td></tr>';
+                '<tr><td colspan="5" class="table-empty">이번 회차에 등록된 추가 활동이 없습니다.</td></tr>';
             return;
         }
 
@@ -1600,8 +1611,19 @@ const ActivityRegisterManagement = (function () {
                 "<td>" + escapeHtml(item.memberName) + " (" + escapeHtml(item.memberBaptismalName) + ")</td>" +
                 "<td>" + escapeHtml(item.categoryName) + "</td>" +
                 "<td>" + escapeHtml(itemLabel) + "</td>" +
-                '<td class="col-center">' + escapeHtml(item.count) + escapeHtml(item.unit) + "</td>";
+                '<td class="col-center">' + escapeHtml(item.count) + escapeHtml(item.unit) + "</td>" +
+                '<td class="col-actions">' +
+                '<button type="button" class="btn-icon edit" data-id="' + item.id + '">수정</button>' +
+                '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>' +
+                "</td>";
             body.appendChild(tr);
+        });
+
+        body.querySelectorAll(".btn-icon.edit").forEach((btn) => {
+            btn.addEventListener("click", () => openExtraEditModal(Number(btn.dataset.id)));
+        });
+        body.querySelectorAll(".btn-icon.delete").forEach((btn) => {
+            btn.addEventListener("click", () => handleExtraDelete(Number(btn.dataset.id)));
         });
     }
 
@@ -1609,16 +1631,16 @@ const ActivityRegisterManagement = (function () {
         const meetingId = getMeetingId();
         if (!meetingId) {
             extraTbody().innerHTML =
-                '<tr><td colspan="4" class="table-empty">선택된 회차가 없습니다.</td></tr>';
+                '<tr><td colspan="5" class="table-empty">선택된 회차가 없습니다.</td></tr>';
             return;
         }
-        extraTbody().innerHTML = '<tr><td colspan="4" class="table-empty">불러오는 중...</td></tr>';
+        extraTbody().innerHTML = '<tr><td colspan="5" class="table-empty">불러오는 중...</td></tr>';
         try {
             const items = await fetchJson("/api/meetings/" + meetingId + "/activity-counts/extra");
             renderExtraRows(items);
         } catch (err) {
             extraTbody().innerHTML =
-                '<tr><td colspan="4" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+                '<tr><td colspan="5" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
         }
     }
 
@@ -1659,9 +1681,133 @@ const ActivityRegisterManagement = (function () {
         }
     }
 
+    function renderExtraMemberOptions(currentMemberId) {
+        const select = extraMemberField();
+        select.innerHTML = "";
+        const activeMembers = members.filter((member) => member.active);
+        const currentMember = members.find((member) => member.id === currentMemberId);
+        const options = currentMember && !currentMember.active ? [currentMember, ...activeMembers] : activeMembers;
+        options.forEach((member) => {
+            const option = document.createElement("option");
+            option.value = member.id;
+            option.textContent = member.active
+                ? member.name + " (" + member.baptismalName + ")"
+                : member.name + " (" + member.baptismalName + ", 비활성)";
+            select.appendChild(option);
+        });
+    }
+
+    function renderExtraCategoryOptions() {
+        const select = extraCategoryField();
+        select.innerHTML = "";
+        const seen = new Map();
+        activityItems.forEach((item) => {
+            if (!seen.has(item.categoryId)) seen.set(item.categoryId, item.categoryName);
+        });
+        seen.forEach((categoryName, categoryId) => {
+            const option = document.createElement("option");
+            option.value = categoryId;
+            option.textContent = categoryName;
+            select.appendChild(option);
+        });
+    }
+
+    function renderExtraItemOptions() {
+        const select = extraItemField();
+        select.innerHTML = "";
+        const categoryId = Number(extraCategoryField().value);
+        activityItems
+            .filter((item) => item.categoryId === categoryId)
+            .forEach((item) => {
+                const option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = item.shortName ? item.name + " (" + item.shortName + ")" : item.name;
+                select.appendChild(option);
+            });
+    }
+
+    function openExtraEditModal(id) {
+        const item = lastExtraItems.find((entry) => entry.id === id);
+        if (!item) return;
+
+        document.getElementById("activity-extra-modal-title").textContent = "활동사항 수정";
+        extraIdField().value = item.id;
+        renderExtraMemberOptions(item.memberId);
+        extraMemberField().value = item.memberId;
+        renderExtraCategoryOptions();
+        extraCategoryField().value = item.categoryId;
+        renderExtraItemOptions();
+        extraItemField().value = item.activityTypeId;
+        extraCountField().value = item.count;
+        extraErrorBox().textContent = "";
+        extraModal().classList.add("is-active");
+    }
+
+    function closeExtraModal() {
+        extraModal().classList.remove("is-active");
+    }
+
+    async function handleExtraSubmit(event) {
+        event.preventDefault();
+        extraErrorBox().textContent = "";
+
+        const meetingId = getMeetingId();
+        const id = extraIdField().value;
+        if (!meetingId || !id) {
+            extraErrorBox().textContent = "선택된 회차가 없습니다.";
+            return;
+        }
+
+        const memberId = Number(extraMemberField().value);
+        const activityTypeId = Number(extraItemField().value);
+        const count = Number(extraCountField().value);
+
+        if (!memberId || !activityTypeId) {
+            extraErrorBox().textContent = "활동단원과 활동항목을 선택해주세요.";
+            return;
+        }
+        if (!Number.isFinite(count) || count < 0) {
+            extraErrorBox().textContent = "0 이상의 숫자를 입력해주세요.";
+            return;
+        }
+
+        try {
+            await fetchJson("/api/meetings/" + meetingId + "/activity-counts/" + id, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ memberId, activityTypeId, count }),
+            });
+            closeExtraModal();
+            await ActivityManagement.load();
+            await loadExtraList();
+        } catch (err) {
+            extraErrorBox().textContent = err.message;
+        }
+    }
+
+    async function handleExtraDelete(id) {
+        const meetingId = getMeetingId();
+        if (!meetingId) return;
+        if (!window.confirm("해당 활동 기록을 삭제하시겠습니까?")) return;
+        try {
+            await fetchJson("/api/meetings/" + meetingId + "/activity-counts/" + id, { method: "DELETE" });
+            await ActivityManagement.load();
+            await loadExtraList();
+        } catch (err) {
+            window.alert(err.message);
+        }
+    }
+
     function bindEvents() {
         categoryField().addEventListener("change", renderItemOptions);
         form().addEventListener("submit", handleSubmit);
+
+        extraCategoryField().addEventListener("change", renderExtraItemOptions);
+        extraForm().addEventListener("submit", handleExtraSubmit);
+        document.getElementById("activity-extra-cancel").addEventListener("click", closeExtraModal);
+        extraModal().addEventListener("click", (event) => {
+            if (event.target === extraModal()) closeExtraModal();
+        });
     }
 
     return {
@@ -1841,6 +1987,7 @@ const MonthlyReportManagement = (function () {
 
     const PANEL_DESCRIPTIONS = {
         "main-schedule": "영명축일, 단원 축일, 주회합 일정을 달력으로 보여줍니다.",
+        "legio-manual": "레지오 마리애 교본 관련 안내입니다.",
     };
     const DEFAULT_DESCRIPTION = "선택한 회차 기준으로 데이터를 보여줍니다.";
 

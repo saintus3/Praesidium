@@ -5,6 +5,7 @@ import kr.savien.Praesidium.dto.ActivityCountGridResponse
 import kr.savien.Praesidium.dto.ActivityCountUpdateRequest
 import kr.savien.Praesidium.service.ActivityCountService
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
@@ -30,6 +31,22 @@ class ActivityCountController(private val activityCountService: ActivityCountSer
         @RequestBody request: ActivityCountUpdateRequest
     ): ResponseEntity<Void> {
         activityCountService.update(meetingId, request)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PutMapping("/{id}")
+    fun updateExtra(
+        @PathVariable meetingId: Int,
+        @PathVariable id: Int,
+        @RequestBody request: ActivityCountUpdateRequest
+    ): ResponseEntity<Void> {
+        activityCountService.updateExtra(meetingId, id, request)
+        return ResponseEntity.noContent().build()
+    }
+
+    @DeleteMapping("/{id}")
+    fun deleteExtra(@PathVariable meetingId: Int, @PathVariable id: Int): ResponseEntity<Void> {
+        activityCountService.deleteExtra(meetingId, id)
         return ResponseEntity.noContent().build()
     }
 }

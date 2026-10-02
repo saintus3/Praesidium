@@ -256,6 +256,24 @@ body {
     background-color: #fafbfc;
 }
 
+.legio-manual-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.legio-manual-notice {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
+.legio-manual-notice a {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
 [data-panel] {
     display: none;
 }
