@@ -1499,10 +1499,17 @@ const ActivityRegisterManagement = (function () {
     const categoryField = () => document.getElementById("activity-register-category");
     const itemField = () => document.getElementById("activity-register-item");
     const countField = () => document.getElementById("activity-register-count");
+    const extraTbody = () => document.getElementById("activity-extra-tbody");
 
     function getMeetingId() {
         const sessionSelect = document.getElementById("session-select");
         return sessionSelect ? sessionSelect.value : "";
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
     }
 
     async function fetchJson(url, options) {
@@ -1525,14 +1532,14 @@ const ActivityRegisterManagement = (function () {
     function renderMemberOptions() {
         const select = memberField();
         select.innerHTML = "";
-        members.forEach((member) => {
-            const option = document.createElement("option");
-            option.value = member.id;
-            option.textContent = member.active
-                ? member.name + " (" + member.baptismalName + ")"
-                : member.name + " (비활성)";
-            select.appendChild(option);
-        });
+        members
+            .filter((member) => member.active)
+            .forEach((member) => {
+                const option = document.createElement("option");
+                option.value = member.id;
+                option.textContent = member.name + " (" + member.baptismalName + ")";
+                select.appendChild(option);
+            });
     }
 
     function renderCategoryOptions() {
@@ -1574,6 +1581,47 @@ const ActivityRegisterManagement = (function () {
         renderItemOptions();
     }
 
+    function renderExtraRows(items) {
+        const body = extraTbody();
+        body.innerHTML = "";
+
+        if (!items.length) {
+            body.innerHTML =
+                '<tr><td colspan="4" class="table-empty">이번 회차에 등록된 추가 활동이 없습니다.</td></tr>';
+            return;
+        }
+
+        items.forEach((item) => {
+            const tr = document.createElement("tr");
+            const itemLabel = item.shortName
+                ? item.activityTypeName + " (" + item.shortName + ")"
+                : item.activityTypeName;
+            tr.innerHTML =
+                "<td>" + escapeHtml(item.memberName) + " (" + escapeHtml(item.memberBaptismalName) + ")</td>" +
+                "<td>" + escapeHtml(item.categoryName) + "</td>" +
+                "<td>" + escapeHtml(itemLabel) + "</td>" +
+                '<td class="col-center">' + escapeHtml(item.count) + escapeHtml(item.unit) + "</td>";
+            body.appendChild(tr);
+        });
+    }
+
+    async function loadExtraList() {
+        const meetingId = getMeetingId();
+        if (!meetingId) {
+            extraTbody().innerHTML =
+                '<tr><td colspan="4" class="table-empty">선택된 회차가 없습니다.</td></tr>';
+            return;
+        }
+        extraTbody().innerHTML = '<tr><td colspan="4" class="table-empty">불러오는 중...</td></tr>';
+        try {
+            const items = await fetchJson("/api/meetings/" + meetingId + "/activity-counts/extra");
+            renderExtraRows(items);
+        } catch (err) {
+            extraTbody().innerHTML =
+                '<tr><td colspan="4" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+        }
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
         errorBox().textContent = "";
@@ -1605,6 +1653,7 @@ const ActivityRegisterManagement = (function () {
             });
             countField().value = "1";
             await ActivityManagement.load();
+            await loadExtraList();
         } catch (err) {
             errorBox().textContent = err.message;
         }
@@ -1617,14 +1666,16 @@ const ActivityRegisterManagement = (function () {
 
     return {
         async init() {
-            if (initialized) return;
-            initialized = true;
-            bindEvents();
-            try {
-                await loadOptions();
-            } catch (err) {
-                errorBox().textContent = err.message;
+            if (!initialized) {
+                initialized = true;
+                bindEvents();
+                try {
+                    await loadOptions();
+                } catch (err) {
+                    errorBox().textContent = err.message;
+                }
             }
+            await loadExtraList();
         },
     };
 })();
@@ -1881,6 +1932,7 @@ const MonthlyReportManagement = (function () {
             }
             if (currentTarget === "activity") {
                 ActivityManagement.load();
+                ActivityRegisterManagement.init();
             }
         });
     }

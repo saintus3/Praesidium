@@ -1,5 +1,6 @@
 package kr.savien.Praesidium.controller
 
+import kr.savien.Praesidium.dto.ActivityCountExtraItemResponse
 import kr.savien.Praesidium.dto.ActivityCountGridResponse
 import kr.savien.Praesidium.dto.ActivityCountUpdateRequest
 import kr.savien.Praesidium.service.ActivityCountService
@@ -18,6 +19,10 @@ class ActivityCountController(private val activityCountService: ActivityCountSer
     @GetMapping
     fun grid(@PathVariable meetingId: Int): ActivityCountGridResponse =
         activityCountService.grid(meetingId)
+
+    @GetMapping("/extra")
+    fun extra(@PathVariable meetingId: Int): List<ActivityCountExtraItemResponse> =
+        activityCountService.extra(meetingId)
 
     @PutMapping
     fun update(

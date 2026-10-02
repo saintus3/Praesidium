@@ -4,6 +4,7 @@ import kr.savien.Praesidium.domain.ActivityCount
 import kr.savien.Praesidium.domain.Member
 import kr.savien.Praesidium.dto.ActivityCountCellResponse
 import kr.savien.Praesidium.dto.ActivityCountColumnResponse
+import kr.savien.Praesidium.dto.ActivityCountExtraItemResponse
 import kr.savien.Praesidium.dto.ActivityCountGridResponse
 import kr.savien.Praesidium.dto.ActivityCountMemberResponse
 import kr.savien.Praesidium.dto.ActivityCountUpdateRequest
@@ -90,6 +91,38 @@ class ActivityCountService(
         }
 
         return ActivityCountGridResponse(columns = columns, members = memberResponses)
+    }
+
+    /** 활동 그리드 기본 8개 항목을 제외하고, 이번 회차에 등록된 그 외 활동 기록을 반환한다. */
+    fun extra(meetingId: Int): List<ActivityCountExtraItemResponse> {
+        if (!meetingRepository.existsById(meetingId)) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "회차를 찾을 수 없습니다. (id=$meetingId)")
+        }
+
+        return activityCountRepository.findAllByMeeting_Id(meetingId)
+            .filter {
+                it.member != null &&
+                    it.count > 0 &&
+                    it.activityType.shortName !in DISPLAY_SHORT_NAMES
+            }
+            .sortedWith(
+                compareBy<ActivityCount> { it.activityType.category.sortOrder }
+                    .thenBy { it.activityType.sortOrder }
+                    .thenBy { it.member!!.name }
+            )
+            .map {
+                ActivityCountExtraItemResponse(
+                    id = it.id,
+                    memberId = it.member!!.id,
+                    memberName = it.member!!.name,
+                    memberBaptismalName = it.member!!.baptismalName,
+                    categoryName = it.activityType.category.name,
+                    activityTypeName = it.activityType.name,
+                    shortName = it.activityType.shortName,
+                    unit = it.activityType.unit,
+                    count = it.count
+                )
+            }
     }
 
     @Transactional

@@ -318,11 +318,32 @@
                                 <label for="activity-register-count">횟수</label>
                                 <input type="number" id="activity-register-count" min="0" value="1" required />
                             </div>
-                            <p class="form-error" id="activity-register-error"></p>
                             <div class="activity-register-actions">
                                 <button type="submit" class="btn-primary">등록</button>
                             </div>
+                            <p class="form-error" id="activity-register-error"></p>
                         </form>
+                    </div>
+
+                    <div class="activity-extra-section">
+                        <h3 class="activity-extra-title">이번 회차 등록 활동 목록</h3>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>단원</th>
+                                        <th>카테고리</th>
+                                        <th>활동항목</th>
+                                        <th class="col-center">횟수</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-extra-tbody">
+                                    <tr>
+                                        <td colspan="4" class="table-empty">불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div data-panel="meeting-management">

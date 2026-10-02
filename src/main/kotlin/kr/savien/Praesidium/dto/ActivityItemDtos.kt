@@ -39,3 +39,16 @@ data class ActivityCountUpdateRequest(
     val activityTypeId: Int,
     val count: Int
 )
+
+/** 활동 메뉴 기본 그리드(평일미사 등 8개 항목)에 포함되지 않은, 이번 회차에 등록된 추가 활동 목록 */
+data class ActivityCountExtraItemResponse(
+    val id: Int,
+    val memberId: Int,
+    val memberName: String,
+    val memberBaptismalName: String,
+    val categoryName: String,
+    val activityTypeName: String,
+    val shortName: String?,
+    val unit: String,
+    val count: Int
+)

@@ -864,6 +864,7 @@ body {
 
 .activity-register-actions {
     display: flex;
+    margin-left: auto;
 }
 
 .activity-register-actions .btn-primary {
@@ -874,6 +875,24 @@ body {
     .activity-register-form .form-row {
         min-width: 100%;
     }
+
+    .activity-register-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .activity-register-actions .btn-primary {
+        width: 100%;
+    }
+}
+
+.activity-extra-section {
+    margin-top: 20px;
+}
+
+.activity-extra-title {
+    font-size: 15px;
+    margin: 0 0 10px;
 }
 
 .calendar-event-list .event-dot {
