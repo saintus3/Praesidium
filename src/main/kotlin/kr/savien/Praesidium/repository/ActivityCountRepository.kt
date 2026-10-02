@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface ActivityCountRepository : JpaRepository<ActivityCount, Int> {
     fun findAllByMeeting_Id(meetingId: Int): List<ActivityCount>
     fun findAllByMeeting_IdIn(meetingIds: List<Int>): List<ActivityCount>
+    fun existsByMeeting_Id(meetingId: Int): Boolean
     fun findByMeeting_IdAndMember_IdAndActivityType_Id(
         meetingId: Int,
         memberId: Int,

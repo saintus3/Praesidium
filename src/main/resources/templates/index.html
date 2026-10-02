@@ -107,6 +107,14 @@
             <div class="menu-group-label">설정</div>
             <ul class="menu-list">
                 <li>
+                    <button type="button" class="menu-item" data-target="meeting-management" data-label="주회합관리" data-category="설정">
+                        <span class="menu-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/></svg>
+                        </span>
+                        <span>주회합관리</span>
+                    </button>
+                </li>
+                <li>
                     <button type="button" class="menu-item" data-target="member-management" data-label="단원관리" data-category="설정">
                         <span class="menu-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M21 20c0-2.5-1.8-4.6-4.2-5.4"/></svg>
@@ -266,6 +274,28 @@
                         </table>
                     </div>
                 </div>
+                <div data-panel="meeting-management">
+                    <div class="panel-toolbar">
+                        <button type="button" id="meeting-add-btn" class="btn-primary">+ 주회합 등록</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>회차</th>
+                                    <th>일자</th>
+                                    <th>비고</th>
+                                    <th class="col-actions">작업</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meeting-tbody">
+                                <tr>
+                                    <td colspan="4" class="table-empty">불러오는 중...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <div data-panel="member-management">
                     <div class="panel-toolbar">
                         <button type="button" id="member-add-btn" class="btn-primary">+ 단원 등록</button>
@@ -403,6 +433,32 @@
                 </div>
             </section>
         </main>
+    </div>
+</div>
+
+<div class="modal-overlay" id="meeting-modal">
+    <div class="modal">
+        <h3 id="meeting-modal-title">주회합 등록</h3>
+        <form id="meeting-form">
+            <input type="hidden" id="meeting-id" value="" />
+            <div class="form-row">
+                <label for="meeting-sequence">회차</label>
+                <input type="number" id="meeting-sequence" min="1" />
+            </div>
+            <div class="form-row">
+                <label for="meeting-date">일자</label>
+                <input type="date" id="meeting-date" required />
+            </div>
+            <div class="form-row">
+                <label for="meeting-notes">비고</label>
+                <input type="text" id="meeting-notes" />
+            </div>
+            <p class="form-error" id="meeting-error"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="meeting-cancel">취소</button>
+                <button type="submit" class="btn-primary">저장</button>
+            </div>
+        </form>
     </div>
 </div>
 

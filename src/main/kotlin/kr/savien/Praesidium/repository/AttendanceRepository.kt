@@ -15,4 +15,6 @@ interface AttendanceRepository : JpaRepository<Attendance, Int> {
     fun deleteByMeetingIdAndMemberId(meetingId: Int, memberId: Int): Long
 
     fun existsByMember_Id(memberId: Int): Boolean
+
+    fun existsByMeeting_Id(meetingId: Int): Boolean
 }

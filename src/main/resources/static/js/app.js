@@ -193,6 +193,165 @@ const OfficerTermManagement = (function () {
     };
 })();
 
+/* ---------- 주회합관리 (Meeting Management) ---------- */
+const MeetingManagement = (function () {
+    let initialized = false;
+
+    const tbody = () => document.getElementById("meeting-tbody");
+    const modal = () => document.getElementById("meeting-modal");
+    const form = () => document.getElementById("meeting-form");
+    const errorBox = () => document.getElementById("meeting-error");
+    const idField = () => document.getElementById("meeting-id");
+    const sequenceField = () => document.getElementById("meeting-sequence");
+    const dateField = () => document.getElementById("meeting-date");
+    const notesField = () => document.getElementById("meeting-notes");
+
+    async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            let message = "요청 처리 중 오류가 발생했습니다.";
+            try {
+                const body = await response.json();
+                message = body.detail || body.message || message;
+            } catch (e) {
+                /* ignore parse errors */
+            }
+            throw new Error(message);
+        }
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    }
+
+    function renderRows(meetings) {
+        const body = tbody();
+        body.innerHTML = "";
+
+        if (!meetings.length) {
+            body.innerHTML =
+                '<tr><td colspan="4" class="table-empty">등록된 회차가 없습니다.</td></tr>';
+            return;
+        }
+
+        meetings.forEach((meeting) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+                "<td>" + (meeting.sequence != null ? escapeHtml(meeting.sequence) + "회차" : "-") + "</td>" +
+                "<td>" + escapeHtml(meeting.meetingDate) + "</td>" +
+                "<td>" + escapeHtml(meeting.notes) + "</td>" +
+                '<td class="col-actions">' +
+                '<button type="button" class="btn-icon edit" data-id="' + meeting.id + '">수정</button>' +
+                '<button type="button" class="btn-icon delete" data-id="' + meeting.id + '">삭제</button>' +
+                "</td>";
+            body.appendChild(tr);
+        });
+
+        body.querySelectorAll(".btn-icon.edit").forEach((btn) => {
+            btn.addEventListener("click", () => openEditModal(Number(btn.dataset.id), meetings));
+        });
+        body.querySelectorAll(".btn-icon.delete").forEach((btn) => {
+            btn.addEventListener("click", () => handleDelete(Number(btn.dataset.id)));
+        });
+    }
+
+    async function loadMeetings() {
+        tbody().innerHTML =
+            '<tr><td colspan="4" class="table-empty">불러오는 중...</td></tr>';
+        try {
+            const meetings = await fetchJson("/api/meeting-management");
+            renderRows(meetings);
+        } catch (err) {
+            tbody().innerHTML =
+                '<tr><td colspan="4" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+        }
+    }
+
+    function openCreateModal() {
+        document.getElementById("meeting-modal-title").textContent = "주회합 등록";
+        idField().value = "";
+        form().reset();
+        errorBox().textContent = "";
+        modal().classList.add("is-active");
+    }
+
+    function openEditModal(id, meetings) {
+        const meeting = meetings.find((m) => m.id === id);
+        if (!meeting) return;
+        document.getElementById("meeting-modal-title").textContent = "주회합 수정";
+        idField().value = meeting.id;
+        sequenceField().value = meeting.sequence != null ? meeting.sequence : "";
+        dateField().value = meeting.meetingDate;
+        notesField().value = meeting.notes || "";
+        errorBox().textContent = "";
+        modal().classList.add("is-active");
+    }
+
+    function closeModal() {
+        modal().classList.remove("is-active");
+    }
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+        errorBox().textContent = "";
+
+        const payload = {
+            meetingDate: dateField().value,
+            sequence: sequenceField().value ? Number(sequenceField().value) : null,
+            notes: notesField().value || "",
+        };
+
+        const id = idField().value;
+        const url = id ? "/api/meeting-management/" + id : "/api/meeting-management";
+        const method = id ? "PUT" : "POST";
+
+        try {
+            await fetchJson(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            closeModal();
+            await loadMeetings();
+        } catch (err) {
+            errorBox().textContent = err.message;
+        }
+    }
+
+    async function handleDelete(id) {
+        if (!window.confirm("해당 주회합(회차)을 삭제하시겠습니까?")) return;
+        try {
+            await fetchJson("/api/meeting-management/" + id, { method: "DELETE" });
+            await loadMeetings();
+        } catch (err) {
+            window.alert(err.message);
+        }
+    }
+
+    function bindStaticEvents() {
+        document.getElementById("meeting-add-btn").addEventListener("click", openCreateModal);
+        document.getElementById("meeting-cancel").addEventListener("click", closeModal);
+        modal().addEventListener("click", (event) => {
+            if (event.target === modal()) closeModal();
+        });
+        form().addEventListener("submit", handleSubmit);
+    }
+
+    return {
+        async init() {
+            if (initialized) return;
+            initialized = true;
+            bindStaticEvents();
+            await loadMeetings();
+        },
+    };
+})();
+
 /* ---------- 출석 (Attendance) ---------- */
 const AttendanceManagement = (function () {
     const tbody = () => document.getElementById("attendance-tbody");
@@ -1342,6 +1501,9 @@ const MonthlyReportManagement = (function () {
 
         if (target === "officer-term-management") {
             OfficerTermManagement.init();
+        }
+        if (target === "meeting-management") {
+            MeetingManagement.init();
         }
         if (target === "attendance") {
             AttendanceManagement.load();

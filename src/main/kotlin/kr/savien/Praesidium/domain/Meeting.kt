@@ -15,11 +15,11 @@ class Meeting(
     val id: Int = 0,
 
     @Column(name = "meeting_date", nullable = false, length = 20)
-    val meetingDate: String = "",
+    var meetingDate: String = "",
 
     @Column(name = "sequence")
-    val sequence: Int? = null,
+    var sequence: Int? = null,
 
     @Column(name = "notes", nullable = false)
-    val notes: String = ""
+    var notes: String = ""
 )
