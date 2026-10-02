@@ -456,6 +456,12 @@ body {
     margin-top: 10px;
 }
 
+.monthly-report-finance-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap: 16px;
+}
+
 .monthly-report-section-title {
     margin: 22px 0 4px;
     font-size: 15px;
