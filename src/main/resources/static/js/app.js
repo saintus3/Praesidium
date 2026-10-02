@@ -204,6 +204,8 @@ const MeetingManagement = (function () {
     const idField = () => document.getElementById("meeting-id");
     const sequenceField = () => document.getElementById("meeting-sequence");
     const dateField = () => document.getElementById("meeting-date");
+    const timeField = () => document.getElementById("meeting-time");
+    const placeField = () => document.getElementById("meeting-place");
     const notesField = () => document.getElementById("meeting-notes");
 
     async function fetchJson(url, options) {
@@ -235,7 +237,7 @@ const MeetingManagement = (function () {
 
         if (!meetings.length) {
             body.innerHTML =
-                '<tr><td colspan="4" class="table-empty">등록된 회차가 없습니다.</td></tr>';
+                '<tr><td colspan="6" class="table-empty">등록된 회차가 없습니다.</td></tr>';
             return;
         }
 
@@ -244,7 +246,9 @@ const MeetingManagement = (function () {
             tr.innerHTML =
                 "<td>" + (meeting.sequence != null ? escapeHtml(meeting.sequence) + "회차" : "-") + "</td>" +
                 "<td>" + escapeHtml(meeting.meetingDate) + "</td>" +
-                "<td>" + escapeHtml(meeting.notes) + "</td>" +
+                "<td>" + escapeHtml(meeting.dayOfWeek) + "</td>" +
+                "<td>" + (meeting.startTime ? escapeHtml(meeting.startTime) : "-") + "</td>" +
+                "<td>" + (meeting.place ? escapeHtml(meeting.place) : "-") + "</td>" +
                 '<td class="col-actions">' +
                 '<button type="button" class="btn-icon edit" data-id="' + meeting.id + '">수정</button>' +
                 '<button type="button" class="btn-icon delete" data-id="' + meeting.id + '">삭제</button>' +
@@ -262,13 +266,13 @@ const MeetingManagement = (function () {
 
     async function loadMeetings() {
         tbody().innerHTML =
-            '<tr><td colspan="4" class="table-empty">불러오는 중...</td></tr>';
+            '<tr><td colspan="6" class="table-empty">불러오는 중...</td></tr>';
         try {
             const meetings = await fetchJson("/api/meeting-management");
             renderRows(meetings);
         } catch (err) {
             tbody().innerHTML =
-                '<tr><td colspan="4" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+                '<tr><td colspan="6" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
         }
     }
 
@@ -287,6 +291,8 @@ const MeetingManagement = (function () {
         idField().value = meeting.id;
         sequenceField().value = meeting.sequence != null ? meeting.sequence : "";
         dateField().value = meeting.meetingDate;
+        timeField().value = meeting.startTime || "";
+        placeField().value = meeting.place || "";
         notesField().value = meeting.notes || "";
         errorBox().textContent = "";
         modal().classList.add("is-active");
@@ -302,6 +308,8 @@ const MeetingManagement = (function () {
 
         const payload = {
             meetingDate: dateField().value,
+            startTime: timeField().value || null,
+            place: placeField().value || null,
             sequence: sequenceField().value ? Number(sequenceField().value) : null,
             notes: notesField().value || "",
         };

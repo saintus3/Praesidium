@@ -284,13 +284,15 @@
                                 <tr>
                                     <th>회차</th>
                                     <th>일자</th>
-                                    <th>비고</th>
+                                    <th>요일</th>
+                                    <th>시간</th>
+                                    <th>장소</th>
                                     <th class="col-actions">작업</th>
                                 </tr>
                             </thead>
                             <tbody id="meeting-tbody">
                                 <tr>
-                                    <td colspan="4" class="table-empty">불러오는 중...</td>
+                                    <td colspan="6" class="table-empty">불러오는 중...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -448,6 +450,14 @@
             <div class="form-row">
                 <label for="meeting-date">일자</label>
                 <input type="date" id="meeting-date" required />
+            </div>
+            <div class="form-row">
+                <label for="meeting-time">시간</label>
+                <input type="time" id="meeting-time" />
+            </div>
+            <div class="form-row">
+                <label for="meeting-place">장소</label>
+                <input type="text" id="meeting-place" />
             </div>
             <div class="form-row">
                 <label for="meeting-notes">비고</label>

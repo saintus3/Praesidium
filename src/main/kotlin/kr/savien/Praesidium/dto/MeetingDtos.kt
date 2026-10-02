@@ -4,6 +4,9 @@ package kr.savien.Praesidium.dto
 data class MeetingResponse(
     val id: Int,
     val meetingDate: String,
+    val dayOfWeek: String,
+    val startTime: String?,
+    val place: String?,
     val sequence: Int?,
     val notes: String
 )
@@ -11,6 +14,8 @@ data class MeetingResponse(
 /** 주회합 등록/수정 요청 */
 data class MeetingRequest(
     val meetingDate: String,
+    val startTime: String?,
+    val place: String?,
     val sequence: Int?,
     val notes: String?
 )

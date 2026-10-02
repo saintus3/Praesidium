@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.LocalTime
 
 @Entity
 @Table(name = "meetings")
@@ -16,6 +17,12 @@ class Meeting(
 
     @Column(name = "meeting_date", nullable = false, length = 20)
     var meetingDate: String = "",
+
+    @Column(name = "start_time")
+    var startTime: LocalTime? = null,
+
+    @Column(name = "place", length = 255)
+    var place: String? = null,
 
     @Column(name = "sequence")
     var sequence: Int? = null,

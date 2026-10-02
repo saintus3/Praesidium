@@ -11,6 +11,11 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeParseException
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Service
 @Transactional(readOnly = true)
@@ -30,6 +35,8 @@ class MeetingManagementService(
         val saved = meetingRepository.save(
             Meeting(
                 meetingDate = request.meetingDate,
+                startTime = parseStartTime(request.startTime),
+                place = request.place?.takeIf { it.isNotBlank() },
                 sequence = request.sequence,
                 notes = request.notes ?: ""
             )
@@ -45,6 +52,8 @@ class MeetingManagementService(
         validate(request)
 
         meeting.meetingDate = request.meetingDate
+        meeting.startTime = parseStartTime(request.startTime)
+        meeting.place = request.place?.takeIf { it.isNotBlank() }
         meeting.sequence = request.sequence
         meeting.notes = request.notes ?: ""
 
@@ -77,9 +86,30 @@ class MeetingManagementService(
         }
     }
 
+    private fun parseStartTime(value: String?): LocalTime? {
+        if (value.isNullOrBlank()) return null
+        return try {
+            LocalTime.parse(value)
+        } catch (ex: DateTimeParseException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "시간 형식이 올바르지 않습니다. (HH:mm)")
+        }
+    }
+
+    private fun dayOfWeekLabel(meetingDate: String): String {
+        val date = try {
+            LocalDate.parse(meetingDate.replace('.', '-'))
+        } catch (ex: Exception) {
+            null
+        }
+        return date?.dayOfWeek?.getDisplayName(TextStyle.SHORT, Locale.KOREAN)?.let { "($it)" } ?: ""
+    }
+
     private fun Meeting.toResponse() = MeetingResponse(
         id = id,
         meetingDate = meetingDate,
+        dayOfWeek = dayOfWeekLabel(meetingDate),
+        startTime = startTime?.toString(),
+        place = place,
         sequence = sequence,
         notes = notes
     )
