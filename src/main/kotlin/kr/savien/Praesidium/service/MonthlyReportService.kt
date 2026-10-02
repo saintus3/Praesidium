@@ -1,7 +1,11 @@
 package kr.savien.Praesidium.service
 
 import kr.savien.Praesidium.domain.Meeting
+import kr.savien.Praesidium.dto.MonthlyReportActivityItem
+import kr.savien.Praesidium.dto.MonthlyReportActivitySection
 import kr.savien.Praesidium.dto.MonthlyReportResponse
+import kr.savien.Praesidium.repository.ActivityCountRepository
+import kr.savien.Praesidium.repository.ActivityTypeRepository
 import kr.savien.Praesidium.repository.AttendanceRepository
 import kr.savien.Praesidium.repository.FinanceRepository
 import kr.savien.Praesidium.repository.MeetingRepository
@@ -20,7 +24,9 @@ class MonthlyReportService(
     private val memberRepository: MemberRepository,
     private val officerTermRepository: OfficerTermRepository,
     private val attendanceRepository: AttendanceRepository,
-    private val financeRepository: FinanceRepository
+    private val financeRepository: FinanceRepository,
+    private val activityCountRepository: ActivityCountRepository,
+    private val activityTypeRepository: ActivityTypeRepository
 ) {
 
     companion object {
@@ -30,6 +36,27 @@ class MonthlyReportService(
         private const val INCOME_NAME = "지난주 비밀헌금"
         private const val DONATION_NAME = "의연금"
         private const val FLOWER_NAME = "꽃값"
+
+        /** 주요활동내역 - 기도 및 신심행위: (표시 라벨, 활동유형 정식명) 순서쌍 */
+        private val PRAYER_ACTIVITY_LABELS = listOf(
+            "1. 묵주기도 7천만 단 바치기" to "묵주기도",
+            "2. 평일미사 참례" to "평일미사참례",
+            "3. 성경읽기, 쓰기" to "성경읽기/쓰기",
+            "4. 매일미사 읽고, 묵상" to "매일미사 읽고 묵상하기",
+            "5. 성모님의 군단 읽기" to "월간 성모님의 군단 읽기"
+        )
+
+        /** 주요활동내역 - 중점활동: (표시 라벨, 활동유형 정식명) 순서쌍 */
+        private val FOCUS_ACTIVITY_LABELS = listOf(
+            "1-1. 새 가족찾기(예비자 교리반 입교)" to "새 가족 찾기",
+            "1-2. 쉬는교우 회두 (고해성사 및 신부님 면담)" to "쉬는 교우 회두권면",
+            "2-1. 복지시설" to "사랑의 증언활동 - 복지시설",
+            "2-2. 병원, 요양원" to "사랑의 증언활동 - 병원, 요양원",
+            "2-3. 기타(독거노인 등 소외된 이웃돌봄)" to "사랑의 증언활동 - 기타",
+            "3. 한반도 평화를 위한 밤 9시 주모경 바치기" to "한반도 평화를 위한 밤 9시 주모경 바치기",
+            "4. 행동단원, 협조단원 모집 및 돌봄 활동" to "협조단원 모집 및 돌봄",
+            "5. 일상기도" to "일상기도"
+        )
     }
 
     /** 회차 날짜들을 기준으로 선택 가능한 "yyyy-MM" 목록을 최신순으로 반환한다. */
@@ -70,7 +97,8 @@ class MonthlyReportService(
                 balance = 0,
                 donationTotal = 0,
                 flowerTotal = 0,
-                otherExpenseTotal = 0
+                otherExpenseTotal = 0,
+                activitySections = buildActivitySections(emptyList())
             )
         }
 
@@ -137,6 +165,8 @@ class MonthlyReportService(
 
         val otherExpenseTotal = expenseTotal - donationTotal - flowerTotal
 
+        val activitySections = buildActivitySections(meetingsInMonth.map { it.id })
+
         return MonthlyReportResponse(
             yearMonth = yearMonth,
             meetingRangeLabel = rangeLabel,
@@ -150,7 +180,36 @@ class MonthlyReportService(
             balance = carryOverAmount + incomeTotal - expenseTotal,
             donationTotal = donationTotal,
             flowerTotal = flowerTotal,
-            otherExpenseTotal = otherExpenseTotal
+            otherExpenseTotal = otherExpenseTotal,
+            activitySections = activitySections
+        )
+    }
+
+    /** 선택된 회차 범위에 속한 모든 단원의 활동 횟수를 활동유형별로 합산하여 주요활동내역 섹션을 구성한다. */
+    private fun buildActivitySections(meetingIds: List<Int>): List<MonthlyReportActivitySection> {
+        val activityTypesByName = activityTypeRepository.findAllWithCategory().associateBy { it.name }
+
+        val countsByTypeId = if (meetingIds.isEmpty()) {
+            emptyMap()
+        } else {
+            activityCountRepository.findAllByMeeting_IdIn(meetingIds)
+                .groupBy { it.activityType.id }
+                .mapValues { (_, counts) -> counts.sumOf { it.count } }
+        }
+
+        fun buildItems(labels: List<Pair<String, String>>): List<MonthlyReportActivityItem> =
+            labels.map { (label, typeName) ->
+                val type = activityTypesByName[typeName]
+                MonthlyReportActivityItem(
+                    label = label,
+                    count = type?.let { countsByTypeId[it.id] } ?: 0,
+                    unit = type?.unit ?: "회"
+                )
+            }
+
+        return listOf(
+            MonthlyReportActivitySection("기도 및 신심행위", buildItems(PRAYER_ACTIVITY_LABELS)),
+            MonthlyReportActivitySection("중점활동", buildItems(FOCUS_ACTIVITY_LABELS))
         )
     }
 

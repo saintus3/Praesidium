@@ -1165,6 +1165,8 @@ const MonthlyReportManagement = (function () {
     const donationValue = () => document.getElementById("monthly-report-donation");
     const flowerValue = () => document.getElementById("monthly-report-flower");
     const otherValue = () => document.getElementById("monthly-report-other");
+    const activitySectionsContainer = () =>
+        document.getElementById("monthly-report-activity-sections");
 
     const MONTH_STORAGE_KEY = "praesidium.selectedMonthlyReportMonth";
 
@@ -1190,6 +1192,41 @@ const MonthlyReportManagement = (function () {
         return Number(value).toLocaleString("ko-KR") + "원";
     }
 
+    function renderActivitySections(sections) {
+        const container = activitySectionsContainer();
+        if (!container) return;
+        if (!sections || sections.length === 0) {
+            container.innerHTML = "";
+            return;
+        }
+        container.innerHTML = sections
+            .map((section) => {
+                const rows = section.items
+                    .map(
+                        (item) =>
+                            '<div class="monthly-report-activity-row">' +
+                            '<span class="monthly-report-activity-label">' +
+                            escapeHtml(item.label) +
+                            "</span>" +
+                            '<span class="monthly-report-activity-value">' +
+                            Number(item.count).toLocaleString("ko-KR") +
+                            escapeHtml(item.unit) +
+                            "</span>" +
+                            "</div>"
+                    )
+                    .join("");
+                return (
+                    '<div class="monthly-report-activity-group">' +
+                    '<h4 class="monthly-report-activity-title">' +
+                    escapeHtml(section.title) +
+                    "</h4>" +
+                    rows +
+                    "</div>"
+                );
+            })
+            .join("");
+    }
+
     async function loadReport(yearMonth) {
         rangeLabel().textContent = "불러오는 중...";
         officerValue().textContent = "-";
@@ -1201,6 +1238,7 @@ const MonthlyReportManagement = (function () {
         donationValue().textContent = "-";
         flowerValue().textContent = "-";
         otherValue().textContent = "-";
+        renderActivitySections([]);
         try {
             const report = await fetchJson(
                 "/api/monthly-reports?yearMonth=" + encodeURIComponent(yearMonth)
@@ -1217,6 +1255,7 @@ const MonthlyReportManagement = (function () {
             donationValue().textContent = formatAmount(report.donationTotal);
             flowerValue().textContent = formatAmount(report.flowerTotal);
             otherValue().textContent = formatAmount(report.otherExpenseTotal);
+            renderActivitySections(report.activitySections);
         } catch (err) {
             rangeLabel().textContent = escapeHtml(err.message);
         }

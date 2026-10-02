@@ -462,6 +462,49 @@ body {
     gap: 16px;
 }
 
+.monthly-report-activity-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.monthly-report-activity-group {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: var(--color-surface, #fff);
+}
+
+.monthly-report-activity-title {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.monthly-report-activity-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-border-light, #f0f0f0);
+    font-size: 13px;
+}
+
+.monthly-report-activity-row:last-child {
+    border-bottom: none;
+}
+
+.monthly-report-activity-label {
+    color: var(--color-text);
+}
+
+.monthly-report-activity-value {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
 .monthly-report-section-title {
     margin: 22px 0 4px;
     font-size: 15px;
