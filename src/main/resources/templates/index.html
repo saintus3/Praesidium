@@ -241,10 +241,15 @@
                             공식 사이트에서 확인하실 수 있습니다.
                         </p>
                         <p class="legio-manual-notice">
-                            단체에서 합법적으로 보유한 교본 PDF 파일이 있다면 아래 영역에 임베드하거나
-                            다운로드 링크를 연결하는 방식으로 이 화면을 채울 수 있도록 구성해 두었습니다.
+                            단체에서 합법적으로 보유한 교본 PDF 파일을
+                            <code>src/main/resources/static/docs/legio_handbook.pdf</code> 경로에 넣으면
+                            아래 영역에 자동으로 표시됩니다.
                         </p>
-                        <div class="placeholder-box">레지오교본 내용 영역 (자료 등록 후 표시됩니다)</div>
+                        <div id="legio-manual-actions" class="legio-manual-actions" style="display:none;">
+                            <a id="legio-manual-download" href="/docs/legio_handbook.pdf" target="_blank" rel="noopener" class="btn-primary">레지오교본 PDF 다운로드</a>
+                        </div>
+                        <iframe id="legio-manual-frame" class="legio-manual-frame" style="display:none;" title="레지오교본"></iframe>
+                        <div id="legio-manual-placeholder" class="placeholder-box">레지오교본 내용 영역 (자료 등록 후 표시됩니다)</div>
                     </div>
                 </div>
 

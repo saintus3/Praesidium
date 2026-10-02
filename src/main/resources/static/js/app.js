@@ -1975,6 +1975,41 @@ const MonthlyReportManagement = (function () {
     return { init };
 })();
 
+/* ---------- 레지오교본 ---------- */
+const LegioManual = (function () {
+    let initialized = false;
+    const PDF_URL = "/docs/legio_handbook.pdf";
+
+    function frame() {
+        return document.getElementById("legio-manual-frame");
+    }
+    function placeholder() {
+        return document.getElementById("legio-manual-placeholder");
+    }
+    function actions() {
+        return document.getElementById("legio-manual-actions");
+    }
+
+    async function init() {
+        if (initialized) return;
+        initialized = true;
+
+        try {
+            const response = await fetch(PDF_URL, { method: "HEAD" });
+            if (response.ok) {
+                frame().src = PDF_URL;
+                frame().style.display = "block";
+                actions().style.display = "block";
+                placeholder().style.display = "none";
+            }
+        } catch (err) {
+            /* PDF가 없으면 안내 문구를 그대로 표시합니다. */
+        }
+    }
+
+    return { init };
+})();
+
 /* ---------- 좌측 메뉴 네비게이션 ---------- */
 (function () {
     const menuItems = document.querySelectorAll(".menu-item[data-target]");
@@ -2045,6 +2080,9 @@ const MonthlyReportManagement = (function () {
         }
         if (target === "monthly-report") {
             MonthlyReportManagement.init();
+        }
+        if (target === "legio-manual") {
+            LegioManual.init();
         }
     }
 
