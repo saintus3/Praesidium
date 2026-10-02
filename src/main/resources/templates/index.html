@@ -178,6 +178,7 @@
                         <span class="legend-item"><span class="legend-dot legend-feast"></span>영명축일</span>
                         <span class="legend-item"><span class="legend-dot legend-member"></span>단원 축일</span>
                         <span class="legend-item"><span class="legend-dot legend-meeting"></span>주회합</span>
+                        <span class="legend-item"><span class="legend-dot legend-schedule"></span>일정</span>
                     </div>
                     <div class="calendar-grid" id="calendar-weekdays">
                         <div class="calendar-weekday">일</div>
@@ -193,6 +194,30 @@
                     <div class="calendar-selected-day" id="calendar-selected-day">
                         <h3 id="calendar-selected-date">날짜를 선택하면 해당 일정이 여기에 표시됩니다.</h3>
                         <ul class="calendar-event-list" id="calendar-selected-events"></ul>
+                    </div>
+
+                    <div class="schedule-manage-section">
+                        <h3 class="schedule-manage-title">일정 관리</h3>
+                        <div class="panel-toolbar">
+                            <button type="button" id="schedule-add-btn" class="btn-primary">+ 일정 등록</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>일자</th>
+                                        <th>제목</th>
+                                        <th>내용</th>
+                                        <th class="col-center">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="schedule-event-tbody">
+                                    <tr>
+                                        <td colspan="4" class="table-empty">불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -466,6 +491,32 @@
             <p class="form-error" id="meeting-error"></p>
             <div class="modal-actions">
                 <button type="button" class="btn-secondary" id="meeting-cancel">취소</button>
+                <button type="submit" class="btn-primary">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="schedule-event-modal">
+    <div class="modal">
+        <h3 id="schedule-event-modal-title">일정 등록</h3>
+        <form id="schedule-event-form">
+            <input type="hidden" id="schedule-event-id" value="" />
+            <div class="form-row">
+                <label for="schedule-event-date">일자</label>
+                <input type="date" id="schedule-event-date" required />
+            </div>
+            <div class="form-row">
+                <label for="schedule-event-title">제목</label>
+                <input type="text" id="schedule-event-title" required />
+            </div>
+            <div class="form-row">
+                <label for="schedule-event-detail">내용</label>
+                <input type="text" id="schedule-event-detail" />
+            </div>
+            <p class="form-error" id="schedule-event-error"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="schedule-event-cancel">취소</button>
                 <button type="submit" class="btn-primary">저장</button>
             </div>
         </form>

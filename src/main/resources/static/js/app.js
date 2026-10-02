@@ -360,6 +360,168 @@ const MeetingManagement = (function () {
     };
 })();
 
+/* ---------- 주요일정 관리 (Schedule Event Management) ---------- */
+const ScheduleEventManagement = (function () {
+    let initialized = false;
+
+    const tbody = () => document.getElementById("schedule-event-tbody");
+    const modal = () => document.getElementById("schedule-event-modal");
+    const form = () => document.getElementById("schedule-event-form");
+    const errorBox = () => document.getElementById("schedule-event-error");
+    const idField = () => document.getElementById("schedule-event-id");
+    const dateField = () => document.getElementById("schedule-event-date");
+    const titleField = () => document.getElementById("schedule-event-title");
+    const detailField = () => document.getElementById("schedule-event-detail");
+
+    async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            let message = "요청 처리 중 오류가 발생했습니다.";
+            try {
+                const body = await response.json();
+                message = body.detail || body.message || message;
+            } catch (e) {
+                /* ignore parse errors */
+            }
+            throw new Error(message);
+        }
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    }
+
+    function renderRows(events) {
+        const body = tbody();
+        body.innerHTML = "";
+
+        if (!events.length) {
+            body.innerHTML =
+                '<tr><td colspan="4" class="table-empty">등록된 일정이 없습니다.</td></tr>';
+            return;
+        }
+
+        events.forEach((item) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+                "<td>" + escapeHtml(item.eventDate) + "</td>" +
+                "<td>" + escapeHtml(item.title) + "</td>" +
+                "<td>" + (item.detail ? escapeHtml(item.detail) : "-") + "</td>" +
+                '<td class="col-actions">' +
+                '<button type="button" class="btn-icon edit" data-id="' + item.id + '">수정</button>' +
+                '<button type="button" class="btn-icon delete" data-id="' + item.id + '">삭제</button>' +
+                "</td>";
+            body.appendChild(tr);
+        });
+
+        body.querySelectorAll(".btn-icon.edit").forEach((btn) => {
+            btn.addEventListener("click", () => openEditModal(Number(btn.dataset.id), events));
+        });
+        body.querySelectorAll(".btn-icon.delete").forEach((btn) => {
+            btn.addEventListener("click", () => handleDelete(Number(btn.dataset.id)));
+        });
+    }
+
+    async function loadEvents() {
+        tbody().innerHTML = '<tr><td colspan="4" class="table-empty">불러오는 중...</td></tr>';
+        try {
+            const events = await fetchJson("/api/schedule-events");
+            renderRows(events);
+        } catch (err) {
+            tbody().innerHTML =
+                '<tr><td colspan="4" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+        }
+    }
+
+    function openCreateModal() {
+        document.getElementById("schedule-event-modal-title").textContent = "일정 등록";
+        idField().value = "";
+        form().reset();
+        const selected = MainScheduleCalendar.getSelectedDate();
+        if (selected) dateField().value = selected;
+        errorBox().textContent = "";
+        modal().classList.add("is-active");
+    }
+
+    function openEditModal(id, events) {
+        const item = events.find((e) => e.id === id);
+        if (!item) return;
+        document.getElementById("schedule-event-modal-title").textContent = "일정 수정";
+        idField().value = item.id;
+        dateField().value = item.eventDate;
+        titleField().value = item.title;
+        detailField().value = item.detail || "";
+        errorBox().textContent = "";
+        modal().classList.add("is-active");
+    }
+
+    function closeModal() {
+        modal().classList.remove("is-active");
+    }
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+        errorBox().textContent = "";
+
+        const payload = {
+            eventDate: dateField().value,
+            title: titleField().value || "",
+            detail: detailField().value || null,
+        };
+
+        const id = idField().value;
+        const url = id ? "/api/schedule-events/" + id : "/api/schedule-events";
+        const method = id ? "PUT" : "POST";
+
+        try {
+            await fetchJson(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            closeModal();
+            await loadEvents();
+            MainScheduleCalendar.reload();
+        } catch (err) {
+            errorBox().textContent = err.message;
+        }
+    }
+
+    async function handleDelete(id) {
+        if (!window.confirm("해당 일정을 삭제하시겠습니까?")) return;
+        try {
+            await fetchJson("/api/schedule-events/" + id, { method: "DELETE" });
+            await loadEvents();
+            MainScheduleCalendar.reload();
+        } catch (err) {
+            window.alert(err.message);
+        }
+    }
+
+    function bindStaticEvents() {
+        document.getElementById("schedule-add-btn").addEventListener("click", openCreateModal);
+        document.getElementById("schedule-event-cancel").addEventListener("click", closeModal);
+        modal().addEventListener("click", (event) => {
+            if (event.target === modal()) closeModal();
+        });
+        form().addEventListener("submit", handleSubmit);
+    }
+
+    return {
+        async init() {
+            if (initialized) return;
+            initialized = true;
+            bindStaticEvents();
+            await loadEvents();
+        },
+    };
+})();
+
 /* ---------- 출석 (Attendance) ---------- */
 const AttendanceManagement = (function () {
     const tbody = () => document.getElementById("attendance-tbody");
@@ -724,12 +886,14 @@ const MainScheduleCalendar = (function () {
         FEAST_DAY: "event-feast",
         MEMBER_FEAST: "event-member",
         MEETING: "event-meeting",
+        SCHEDULE: "event-schedule",
     };
 
     const EVENT_DOT_COLOR = {
         FEAST_DAY: "#9aa3b5",
         MEMBER_FEAST: "#3a7afe",
         MEETING: "#2fb380",
+        SCHEDULE: "#e08a2f",
     };
 
     function renderSelectedDay() {
@@ -866,6 +1030,12 @@ const MainScheduleCalendar = (function () {
             initialized = true;
             bindEvents();
             loadMonth();
+        },
+        reload() {
+            loadMonth();
+        },
+        getSelectedDate() {
+            return selectedDate;
         },
     };
 })();
@@ -1521,6 +1691,7 @@ const MonthlyReportManagement = (function () {
         }
         if (target === "main-schedule") {
             MainScheduleCalendar.init();
+            ScheduleEventManagement.init();
         }
         if (target === "member-management") {
             MemberManagement.init();

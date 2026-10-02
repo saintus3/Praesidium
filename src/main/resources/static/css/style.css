@@ -703,6 +703,10 @@ body {
     background-color: #2fb380;
 }
 
+.legend-schedule {
+    background-color: #e08a2f;
+}
+
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -775,6 +779,12 @@ body {
     font-weight: 700;
 }
 
+.calendar-event.event-schedule {
+    background-color: rgba(224, 138, 47, 0.16);
+    color: #a8631b;
+    font-weight: 700;
+}
+
 .calendar-day-cell:not(.is-empty) {
     cursor: pointer;
 }
@@ -811,6 +821,15 @@ body {
     align-items: center;
     gap: 8px;
     font-size: 13px;
+}
+
+.schedule-manage-section {
+    margin-top: 20px;
+}
+
+.schedule-manage-title {
+    font-size: 15px;
+    margin: 0 0 10px;
 }
 
 .calendar-event-list .event-dot {

@@ -4,6 +4,7 @@ import kr.savien.Praesidium.dto.CalendarEventResponse
 import kr.savien.Praesidium.repository.FeastDayRepository
 import kr.savien.Praesidium.repository.MeetingRepository
 import kr.savien.Praesidium.repository.MemberRepository
+import kr.savien.Praesidium.repository.ScheduleEventRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -12,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 class CalendarService(
     private val feastDayRepository: FeastDayRepository,
     private val memberRepository: MemberRepository,
-    private val meetingRepository: MeetingRepository
+    private val meetingRepository: MeetingRepository,
+    private val scheduleEventRepository: ScheduleEventRepository
 ) {
 
     fun getMonthEvents(year: Int, month: Int): List<CalendarEventResponse> {
@@ -53,6 +55,19 @@ class CalendarService(
                     type = "MEETING",
                     title = label,
                     detail = meeting.notes.ifBlank { null }
+                )
+            )
+        }
+
+        val prefix2 = "%04d-%02d".format(year, month)
+        scheduleEventRepository.findAllByEventDateStartingWith(prefix2).forEach { schedule ->
+            events.add(
+                CalendarEventResponse(
+                    date = schedule.eventDate,
+                    type = "SCHEDULE",
+                    title = schedule.title,
+                    detail = schedule.detail,
+                    id = schedule.id
                 )
             )
         }
