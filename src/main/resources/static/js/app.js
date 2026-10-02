@@ -1158,6 +1158,15 @@ const MonthlyReportManagement = (function () {
     const rangeLabel = () => document.getElementById("monthly-report-range");
     const officerValue = () => document.getElementById("monthly-report-officer");
     const memberValue = () => document.getElementById("monthly-report-member");
+    const carryOverValue = () => document.getElementById("monthly-report-carry-over");
+    const incomeValue = () => document.getElementById("monthly-report-income");
+    const expenseValue = () => document.getElementById("monthly-report-expense");
+    const balanceValue = () => document.getElementById("monthly-report-balance");
+    const donationValue = () => document.getElementById("monthly-report-donation");
+    const flowerValue = () => document.getElementById("monthly-report-flower");
+    const otherValue = () => document.getElementById("monthly-report-other");
+
+    const MONTH_STORAGE_KEY = "praesidium.selectedMonthlyReportMonth";
 
     function escapeHtml(value) {
         const div = document.createElement("div");
@@ -1177,10 +1186,21 @@ const MonthlyReportManagement = (function () {
         return present + "/" + total;
     }
 
+    function formatAmount(value) {
+        return Number(value).toLocaleString("ko-KR") + "원";
+    }
+
     async function loadReport(yearMonth) {
         rangeLabel().textContent = "불러오는 중...";
         officerValue().textContent = "-";
         memberValue().textContent = "-";
+        carryOverValue().textContent = "-";
+        incomeValue().textContent = "-";
+        expenseValue().textContent = "-";
+        balanceValue().textContent = "-";
+        donationValue().textContent = "-";
+        flowerValue().textContent = "-";
+        otherValue().textContent = "-";
         try {
             const report = await fetchJson(
                 "/api/monthly-reports?yearMonth=" + encodeURIComponent(yearMonth)
@@ -1190,6 +1210,13 @@ const MonthlyReportManagement = (function () {
                 "간부(" + formatStat(report.officerPresent, report.officerTotal) + ")";
             memberValue().textContent =
                 "단원(" + formatStat(report.memberPresent, report.memberTotal) + ")";
+            carryOverValue().textContent = formatAmount(report.carryOverAmount);
+            incomeValue().textContent = formatAmount(report.incomeTotal);
+            expenseValue().textContent = formatAmount(report.expenseTotal);
+            balanceValue().textContent = formatAmount(report.balance);
+            donationValue().textContent = formatAmount(report.donationTotal);
+            flowerValue().textContent = formatAmount(report.flowerTotal);
+            otherValue().textContent = formatAmount(report.otherExpenseTotal);
         } catch (err) {
             rangeLabel().textContent = escapeHtml(err.message);
         }
@@ -1212,7 +1239,15 @@ const MonthlyReportManagement = (function () {
                 return;
             }
 
+            const savedMonth = window.localStorage.getItem(MONTH_STORAGE_KEY);
+            if (savedMonth && sel.querySelector('option[value="' + savedMonth + '"]')) {
+                sel.value = savedMonth;
+            } else if (sel.value) {
+                window.localStorage.setItem(MONTH_STORAGE_KEY, sel.value);
+            }
+
             sel.addEventListener("change", () => {
+                window.localStorage.setItem(MONTH_STORAGE_KEY, sel.value);
                 if (sel.value) loadReport(sel.value);
             });
         }

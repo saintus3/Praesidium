@@ -3,6 +3,7 @@ package kr.savien.Praesidium.service
 import kr.savien.Praesidium.domain.Meeting
 import kr.savien.Praesidium.dto.MonthlyReportResponse
 import kr.savien.Praesidium.repository.AttendanceRepository
+import kr.savien.Praesidium.repository.FinanceRepository
 import kr.savien.Praesidium.repository.MeetingRepository
 import kr.savien.Praesidium.repository.MemberRepository
 import kr.savien.Praesidium.repository.OfficerTermRepository
@@ -18,8 +19,18 @@ class MonthlyReportService(
     private val meetingRepository: MeetingRepository,
     private val memberRepository: MemberRepository,
     private val officerTermRepository: OfficerTermRepository,
-    private val attendanceRepository: AttendanceRepository
+    private val attendanceRepository: AttendanceRepository,
+    private val financeRepository: FinanceRepository
 ) {
+
+    companion object {
+        private const val INCOME = "INCOME"
+        private const val EXPENSE = "EXPENSE"
+        private const val CARRY_OVER_NAME = "지지난주 비밀헌금"
+        private const val INCOME_NAME = "지난주 비밀헌금"
+        private const val DONATION_NAME = "의연금"
+        private const val FLOWER_NAME = "꽃값"
+    }
 
     /** 회차 날짜들을 기준으로 선택 가능한 "yyyy-MM" 목록을 최신순으로 반환한다. */
     fun availableMonths(): List<String> {
@@ -52,7 +63,14 @@ class MonthlyReportService(
                 officerPresent = 0,
                 officerTotal = 0,
                 memberPresent = 0,
-                memberTotal = 0
+                memberTotal = 0,
+                carryOverAmount = 0,
+                incomeTotal = 0,
+                expenseTotal = 0,
+                balance = 0,
+                donationTotal = 0,
+                flowerTotal = 0,
+                otherExpenseTotal = 0
             )
         }
 
@@ -92,13 +110,47 @@ class MonthlyReportService(
             memberPresent += regulars.count { it.id in presentMemberIds }
         }
 
+        val financeItemsInRange = meetingsInMonth.flatMap { meeting ->
+            financeRepository.findAllByMeeting_IdOrderByIdAsc(meeting.id)
+        }
+
+        val carryOverAmount = financeRepository
+            .findAllByMeeting_IdOrderByIdAsc(meetingsInMonth.first().id)
+            .filter { it.description == CARRY_OVER_NAME }
+            .sumOf { it.amount.toLong() }
+
+        val incomeTotal = financeItemsInRange
+            .filter { it.kind == INCOME && it.description == INCOME_NAME }
+            .sumOf { it.amount.toLong() }
+
+        val expenseTotal = financeItemsInRange
+            .filter { it.kind == EXPENSE }
+            .sumOf { it.amount.toLong() }
+
+        val donationTotal = financeItemsInRange
+            .filter { it.kind == EXPENSE && it.description == DONATION_NAME }
+            .sumOf { it.amount.toLong() }
+
+        val flowerTotal = financeItemsInRange
+            .filter { it.kind == EXPENSE && it.description == FLOWER_NAME }
+            .sumOf { it.amount.toLong() }
+
+        val otherExpenseTotal = expenseTotal - donationTotal - flowerTotal
+
         return MonthlyReportResponse(
             yearMonth = yearMonth,
             meetingRangeLabel = rangeLabel,
             officerPresent = officerPresent,
             officerTotal = officerTotal,
             memberPresent = memberPresent,
-            memberTotal = memberTotal
+            memberTotal = memberTotal,
+            carryOverAmount = carryOverAmount,
+            incomeTotal = incomeTotal,
+            expenseTotal = expenseTotal,
+            balance = carryOverAmount + incomeTotal - expenseTotal,
+            donationTotal = donationTotal,
+            flowerTotal = flowerTotal,
+            otherExpenseTotal = otherExpenseTotal
         )
     }
 

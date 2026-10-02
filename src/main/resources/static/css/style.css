@@ -451,8 +451,16 @@ body {
 
 .monthly-report-summary {
     display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     margin-top: 10px;
+}
+
+.monthly-report-section-title {
+    margin: 22px 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
 }
 
 .monthly-report-stat {
