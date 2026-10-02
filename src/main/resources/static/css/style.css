@@ -832,6 +832,50 @@ body {
     margin: 0 0 10px;
 }
 
+.activity-register-section {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background-color: #ffffff;
+}
+
+.activity-register-title {
+    font-size: 15px;
+    margin: 0 0 12px;
+}
+
+.activity-register-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.activity-register-form .form-row {
+    margin-bottom: 0;
+    min-width: 160px;
+}
+
+.activity-register-form .form-error {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+.activity-register-actions {
+    display: flex;
+}
+
+.activity-register-actions .btn-primary {
+    height: 37px;
+}
+
+@media (max-width: 900px) {
+    .activity-register-form .form-row {
+        min-width: 100%;
+    }
+}
+
 .calendar-event-list .event-dot {
     width: 8px;
     height: 8px;

@@ -1487,6 +1487,148 @@ const ActivityManagement = (function () {
     return { load };
 })();
 
+/* ---------- 활동사항 등록 (Activity Register) ---------- */
+const ActivityRegisterManagement = (function () {
+    let initialized = false;
+    let activityItems = [];
+    let members = [];
+
+    const form = () => document.getElementById("activity-register-form");
+    const errorBox = () => document.getElementById("activity-register-error");
+    const memberField = () => document.getElementById("activity-register-member");
+    const categoryField = () => document.getElementById("activity-register-category");
+    const itemField = () => document.getElementById("activity-register-item");
+    const countField = () => document.getElementById("activity-register-count");
+
+    function getMeetingId() {
+        const sessionSelect = document.getElementById("session-select");
+        return sessionSelect ? sessionSelect.value : "";
+    }
+
+    async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            let message = "요청 처리 중 오류가 발생했습니다.";
+            try {
+                const body = await response.json();
+                message = body.detail || body.message || message;
+            } catch (e) {
+                /* ignore parse errors */
+            }
+            throw new Error(message);
+        }
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    function renderMemberOptions() {
+        const select = memberField();
+        select.innerHTML = "";
+        members.forEach((member) => {
+            const option = document.createElement("option");
+            option.value = member.id;
+            option.textContent = member.active
+                ? member.name + " (" + member.baptismalName + ")"
+                : member.name + " (비활성)";
+            select.appendChild(option);
+        });
+    }
+
+    function renderCategoryOptions() {
+        const select = categoryField();
+        select.innerHTML = "";
+        const seen = new Map();
+        activityItems.forEach((item) => {
+            if (!seen.has(item.categoryId)) seen.set(item.categoryId, item.categoryName);
+        });
+        seen.forEach((categoryName, categoryId) => {
+            const option = document.createElement("option");
+            option.value = categoryId;
+            option.textContent = categoryName;
+            select.appendChild(option);
+        });
+    }
+
+    function renderItemOptions() {
+        const select = itemField();
+        select.innerHTML = "";
+        const categoryId = Number(categoryField().value);
+        activityItems
+            .filter((item) => item.categoryId === categoryId)
+            .forEach((item) => {
+                const option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = item.shortName ? item.name + " (" + item.shortName + ")" : item.name;
+                select.appendChild(option);
+            });
+    }
+
+    async function loadOptions() {
+        [members, activityItems] = await Promise.all([
+            fetchJson("/api/members"),
+            fetchJson("/api/activity-items"),
+        ]);
+        renderMemberOptions();
+        renderCategoryOptions();
+        renderItemOptions();
+    }
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+        errorBox().textContent = "";
+
+        const meetingId = getMeetingId();
+        if (!meetingId) {
+            errorBox().textContent = "선택된 회차가 없습니다.";
+            return;
+        }
+
+        const memberId = Number(memberField().value);
+        const activityTypeId = Number(itemField().value);
+        const count = Number(countField().value);
+
+        if (!memberId || !activityTypeId) {
+            errorBox().textContent = "활동단원과 활동항목을 선택해주세요.";
+            return;
+        }
+        if (!Number.isFinite(count) || count < 0) {
+            errorBox().textContent = "0 이상의 숫자를 입력해주세요.";
+            return;
+        }
+
+        try {
+            await fetchJson("/api/meetings/" + meetingId + "/activity-counts", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ memberId, activityTypeId, count }),
+            });
+            countField().value = "1";
+            await ActivityManagement.load();
+        } catch (err) {
+            errorBox().textContent = err.message;
+        }
+    }
+
+    function bindEvents() {
+        categoryField().addEventListener("change", renderItemOptions);
+        form().addEventListener("submit", handleSubmit);
+    }
+
+    return {
+        async init() {
+            if (initialized) return;
+            initialized = true;
+            bindEvents();
+            try {
+                await loadOptions();
+            } catch (err) {
+                errorBox().textContent = err.message;
+            }
+        },
+    };
+})();
+
 /* ---------- 월례보고 (Monthly Report) ---------- */
 const MonthlyReportManagement = (function () {
     let initialized = false;
@@ -1701,6 +1843,7 @@ const MonthlyReportManagement = (function () {
         }
         if (target === "activity") {
             ActivityManagement.load();
+            ActivityRegisterManagement.init();
         }
         if (target === "monthly-report") {
             MonthlyReportManagement.init();
