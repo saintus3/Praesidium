@@ -2023,6 +2023,7 @@ const LegioManual = (function () {
     const PANEL_DESCRIPTIONS = {
         "main-schedule": "영명축일, 단원 축일, 주회합 일정을 달력으로 보여줍니다.",
         "legio-manual": "레지오 마리애 교본 관련 안내입니다.",
+        "yahweh-ire": "야훼이레 PDF를 보여줍니다. 화면에 표시되지 않으면 PDF 열기를 이용해 주세요.",
     };
     const DEFAULT_DESCRIPTION = "선택한 회차 기준으로 데이터를 보여줍니다.";
 
