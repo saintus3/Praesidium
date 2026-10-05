@@ -1975,6 +1975,150 @@ const MonthlyReportManagement = (function () {
     return { init };
 })();
 
+/* ---------- 사업보고 (Annual Project Report) ---------- */
+const ProjectReportManagement = (function () {
+    let initialized = false;
+
+    const select = () => document.getElementById("project-report-year");
+    const officerValue = () => document.getElementById("project-report-officer");
+    const memberValue = () => document.getElementById("project-report-member");
+    const carryOverValue = () => document.getElementById("project-report-carry-over");
+    const incomeValue = () => document.getElementById("project-report-income");
+    const expenseValue = () => document.getElementById("project-report-expense");
+    const balanceValue = () => document.getElementById("project-report-balance");
+    const eventsContainer = () => document.getElementById("project-report-events");
+    const activityContainer = () =>
+        document.getElementById("project-report-activity-categories");
+    const YEAR_STORAGE_KEY = "praesidium.selectedProjectReportYear";
+
+    function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error("사업보고 데이터를 불러오지 못했습니다.");
+        }
+        return response.json();
+    }
+
+    function formatAmount(value) {
+        return Number(value).toLocaleString("ko-KR") + "원";
+    }
+
+    function renderReport(report) {
+        officerValue().textContent =
+            "간부(" + report.officerPresent + "/" + report.officerTotal + ")";
+        memberValue().textContent =
+            "단원(" + report.memberPresent + "/" + report.memberTotal + ")";
+        carryOverValue().textContent = formatAmount(report.carryOverAmount);
+        incomeValue().textContent = formatAmount(report.incomeTotal);
+        expenseValue().textContent = formatAmount(report.expenseTotal);
+        balanceValue().textContent = formatAmount(report.balance);
+
+        eventsContainer().innerHTML = report.legioEvents.length
+            ? report.legioEvents
+                  .map(
+                      (event) =>
+                          "<tr><td>" +
+                          escapeHtml(event.date) +
+                          "</td><td>" +
+                          escapeHtml(event.name) +
+                          "</td><td>" +
+                          escapeHtml(event.place || "-") +
+                          "</td></tr>"
+                  )
+                  .join("")
+            : '<tr><td colspan="3" class="table-empty">등록된 레지오행사가 없습니다.</td></tr>';
+
+        activityContainer().innerHTML = report.activityCategories
+            .map((category) => {
+                const rows = category.activities
+                    .map(
+                        (activity) =>
+                            '<div class="monthly-report-activity-row">' +
+                            '<span class="monthly-report-activity-label">' +
+                            escapeHtml(activity.name) +
+                            "</span>" +
+                            '<span class="monthly-report-activity-value">' +
+                            Number(activity.count).toLocaleString("ko-KR") +
+                            escapeHtml(activity.unit) +
+                            "</span></div>"
+                    )
+                    .join("");
+                return (
+                    '<div class="monthly-report-activity-group">' +
+                    '<h4 class="monthly-report-activity-title">' +
+                    escapeHtml(category.name) +
+                    " (" +
+                    Number(category.total).toLocaleString("ko-KR") +
+                    "회)</h4>" +
+                    rows +
+                    "</div>"
+                );
+            })
+            .join("");
+    }
+
+    async function loadReport(year) {
+        try {
+            renderReport(await fetchJson("/api/project-reports?year=" + encodeURIComponent(year)));
+        } catch (err) {
+            eventsContainer().innerHTML =
+                '<tr><td colspan="3" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+            activityContainer().innerHTML = "";
+            officerValue().textContent = "-";
+            memberValue().textContent = "-";
+            carryOverValue().textContent = "-";
+            incomeValue().textContent = "-";
+            expenseValue().textContent = "-";
+            balanceValue().textContent = "-";
+        }
+    }
+
+    async function init() {
+        const sel = select();
+        if (!sel) return;
+
+        if (!initialized) {
+            initialized = true;
+            try {
+                const years = await fetchJson("/api/project-reports/years");
+                sel.innerHTML = years
+                    .map((year) => '<option value="' + year + '">' + year + "년</option>")
+                    .join("");
+            } catch (err) {
+                sel.innerHTML = "";
+                eventsContainer().innerHTML =
+                    '<tr><td colspan="3" class="table-empty">' + escapeHtml(err.message) + "</td></tr>";
+                return;
+            }
+
+            const savedYear = window.localStorage.getItem(YEAR_STORAGE_KEY);
+            if (savedYear && sel.querySelector('option[value="' + savedYear + '"]')) {
+                sel.value = savedYear;
+            }
+            sel.addEventListener("change", () => {
+                window.localStorage.setItem(YEAR_STORAGE_KEY, sel.value);
+                if (sel.value) loadReport(sel.value);
+            });
+        }
+
+        if (!sel.value) {
+            eventsContainer().innerHTML =
+                '<tr><td colspan="3" class="table-empty">보고할 주회합이 없습니다.</td></tr>';
+            return;
+        }
+        window.localStorage.setItem(YEAR_STORAGE_KEY, sel.value);
+        await loadReport(sel.value);
+    }
+
+    return { init };
+})();
+
 /* ---------- 레지오교본 ---------- */
 const LegioManual = (function () {
     let initialized = false;
@@ -2135,6 +2279,9 @@ const CatholicSong = (function () {
         }
         if (target === "monthly-report") {
             MonthlyReportManagement.init();
+        }
+        if (target === "project-report") {
+            ProjectReportManagement.init();
         }
         if (target === "legio-manual") {
             LegioManual.init();
