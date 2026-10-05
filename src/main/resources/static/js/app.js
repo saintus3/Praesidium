@@ -2010,6 +2010,59 @@ const LegioManual = (function () {
     return { init };
 })();
 
+/* ---------- 가톨릭성가 ---------- */
+const CatholicSong = (function () {
+    let initialized = false;
+
+    async function findSong(event) {
+        event.preventDefault();
+
+        const numberInput = document.getElementById("catholic-song-number");
+        const status = document.getElementById("catholic-song-status");
+        const frame = document.getElementById("catholic-song-frame");
+        const number = Number(numberInput.value);
+
+        if (!Number.isInteger(number) || number < 1 || number > 500) {
+            status.textContent = "성가번호는 1부터 500까지 입력해 주세요.";
+            frame.style.display = "none";
+            frame.removeAttribute("src");
+            return;
+        }
+
+        const pdfUrl = "/api/catholic-songs/" + number;
+        status.textContent = "성가 PDF를 찾는 중입니다.";
+        frame.style.display = "none";
+
+        try {
+            const response = await fetch(pdfUrl, { method: "HEAD" });
+            if (!response.ok) {
+                frame.removeAttribute("src");
+                status.textContent =
+                    response.status === 404
+                        ? "해당 성가번호의 PDF를 찾을 수 없습니다."
+                        : "성가 PDF를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+                return;
+            }
+
+            frame.src = pdfUrl;
+            frame.style.display = "block";
+            status.textContent = number + "번 성가";
+        } catch (err) {
+            status.textContent = "성가 PDF를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        }
+    }
+
+    function init() {
+        if (initialized) return;
+        initialized = true;
+        document
+            .getElementById("catholic-song-search")
+            .addEventListener("submit", findSong);
+    }
+
+    return { init };
+})();
+
 /* ---------- 좌측 메뉴 네비게이션 ---------- */
 (function () {
     const menuItems = document.querySelectorAll(".menu-item[data-target]");
@@ -2024,6 +2077,7 @@ const LegioManual = (function () {
         "main-schedule": "영명축일, 단원 축일, 주회합 일정을 달력으로 보여줍니다.",
         "legio-manual": "레지오 마리애 교본 관련 안내입니다.",
         "yahweh-ire": "야훼이레 PDF를 보여줍니다. 화면에 표시되지 않으면 PDF 열기를 이용해 주세요.",
+        "catholic-song": "성가번호를 입력해 해당 가톨릭 성가 PDF를 확인합니다.",
     };
     const DEFAULT_DESCRIPTION = "선택한 회차 기준으로 데이터를 보여줍니다.";
 
@@ -2085,6 +2139,9 @@ const LegioManual = (function () {
         if (target === "legio-manual") {
             LegioManual.init();
         }
+        if (target === "catholic-song") {
+            CatholicSong.init();
+        }
     }
 
     menuItems.forEach((item) => {
@@ -2094,22 +2151,10 @@ const LegioManual = (function () {
         });
     });
 
-    const SESSION_STORAGE_KEY = "praesidium.selectedSessionId";
     const sessionSelect = document.getElementById("session-select");
 
     if (sessionSelect) {
-        const savedSessionId = window.localStorage.getItem(SESSION_STORAGE_KEY);
-        if (
-            savedSessionId &&
-            sessionSelect.querySelector('option[value="' + savedSessionId + '"]')
-        ) {
-            sessionSelect.value = savedSessionId;
-        } else {
-            window.localStorage.setItem(SESSION_STORAGE_KEY, sessionSelect.value);
-        }
-
         sessionSelect.addEventListener("change", (event) => {
-            window.localStorage.setItem(SESSION_STORAGE_KEY, event.target.value);
             if (currentTarget === "attendance") {
                 AttendanceManagement.load();
             }

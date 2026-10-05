@@ -40,6 +40,14 @@
                         <span>야훼이레</span>
                     </button>
                 </li>
+                <li>
+                    <button type="button" class="menu-item" data-target="catholic-song" data-label="가톨릭성가" data-category="가톨릭성가">
+                        <span class="menu-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        </span>
+                        <span>가톨릭성가</span>
+                    </button>
+                </li>
             </ul>
         </nav>
 
@@ -138,7 +146,7 @@
         <header class="topbar">
             <div class="topbar-title" id="topbar-title">출석</div>
             <div class="session-select-wrap">
-                <label for="session-select">회차</label>
+                <label for="session-select">주회차</label>
                 <select id="session-select" class="session-select" name="session">
                     <option
                         th:each="sessionItem : ${sessions}"
@@ -242,6 +250,19 @@
                         <a th:href="@{/docs/Yahweh-jireh.pdf}" href="/docs/Yahweh-jireh.pdf" target="_blank" rel="noopener" class="btn-primary">야훼이레 PDF 열기</a>
                     </div>
                     <iframe th:src="@{/docs/Yahweh-jireh.pdf}" src="/docs/Yahweh-jireh.pdf" class="pdf-frame" title="야훼이레 PDF" loading="lazy"></iframe>
+                </div>
+
+                <div data-panel="catholic-song">
+                    <form id="catholic-song-search" class="catholic-song-search panel-toolbar">
+                        <label for="catholic-song-number">성가번호</label>
+                        <input id="catholic-song-number" type="number" min="1" max="500" step="1" required
+                               placeholder="1~500" aria-describedby="catholic-song-status">
+                        <button type="submit" class="btn-primary">성가 찾기</button>
+                    </form>
+                    <p id="catholic-song-status" class="catholic-song-status" role="status" aria-live="polite">
+                        성가번호를 입력하면 해당 성가 PDF를 보여줍니다.
+                    </p>
+                    <iframe id="catholic-song-frame" class="pdf-frame" title="가톨릭 성가 PDF" style="display:none;" loading="lazy"></iframe>
                 </div>
 
                 <div data-panel="attendance">
