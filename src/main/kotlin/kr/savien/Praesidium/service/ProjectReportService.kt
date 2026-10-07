@@ -90,7 +90,9 @@ class ProjectReportService(
                 )
             }
 
-        val carryOverAmount = monthlyReports.sumOf { it.carryOverAmount }
+        val carryOverAmount = monthlyReports
+            .firstOrNull { it.yearMonth == "%04d-01".format(year) }
+            ?.carryOverAmount ?: 0L
         val incomeTotal = monthlyReports.sumOf { it.incomeTotal }
         val expenseTotal = monthlyReports.sumOf { it.expenseTotal }
 

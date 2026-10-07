@@ -13,6 +13,13 @@ data class MonthlyReportActivitySection(
     val items: List<MonthlyReportActivityItem>
 )
 
+data class MonthlyReportEvent(
+    val date: String,
+    val name: String,
+    val place: String?,
+    val status: String
+)
+
 /** 월례보고 화면에서 선택 가능한 년-월(yyyy-MM) 목록 응답에 사용한다. */
 data class MonthlyReportResponse(
     val yearMonth: String,
@@ -28,5 +35,6 @@ data class MonthlyReportResponse(
     val donationTotal: Long,
     val flowerTotal: Long,
     val otherExpenseTotal: Long,
-    val activitySections: List<MonthlyReportActivitySection>
+    val activitySections: List<MonthlyReportActivitySection>,
+    val legioEvents: List<MonthlyReportEvent>
 )

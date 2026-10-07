@@ -1493,6 +1493,8 @@ const ActivityRegisterManagement = (function () {
     let activityItems = [];
     let members = [];
     let lastExtraItems = [];
+    let extraSortKey = "memberName";
+    let extraSortDirection = 1;
 
     const form = () => document.getElementById("activity-register-form");
     const errorBox = () => document.getElementById("activity-register-error");
@@ -1602,7 +1604,25 @@ const ActivityRegisterManagement = (function () {
             return;
         }
 
-        items.forEach((item) => {
+        const sortedItems = [...items].sort((a, b) => {
+            const sortValue = (item) => {
+                if (extraSortKey === "count") return item.count;
+                if (extraSortKey === "memberName") {
+                    return item.memberName + " " + item.memberBaptismalName;
+                }
+                if (extraSortKey === "activityTypeName") {
+                    return item.activityTypeName + (item.shortName ? " " + item.shortName : "");
+                }
+                return item.categoryName;
+            };
+            const aValue = sortValue(a);
+            const bValue = sortValue(b);
+            const comparison = extraSortKey === "count"
+                ? aValue - bValue
+                : aValue.localeCompare(bValue, "ko");
+            return comparison * extraSortDirection;
+        });
+        sortedItems.forEach((item) => {
             const tr = document.createElement("tr");
             const itemLabel = item.shortName
                 ? item.activityTypeName + " (" + item.shortName + ")"
@@ -1624,6 +1644,24 @@ const ActivityRegisterManagement = (function () {
         });
         body.querySelectorAll(".btn-icon.delete").forEach((btn) => {
             btn.addEventListener("click", () => handleExtraDelete(Number(btn.dataset.id)));
+        });
+    }
+
+    function updateExtraSortHeaders() {
+        const table = extraTbody().closest("table");
+        if (!table) return;
+        table.querySelectorAll(".table-sort-button").forEach((button) => {
+            const header = button.closest("th");
+            if (!header) return;
+            const isActive = button.dataset.sortKey === extraSortKey;
+            header.setAttribute(
+                "aria-sort",
+                isActive ? (extraSortDirection === 1 ? "ascending" : "descending") : "none"
+            );
+            const indicator = button.querySelector(".table-sort-indicator");
+            if (indicator) {
+                indicator.textContent = isActive ? (extraSortDirection === 1 ? "↑" : "↓") : "";
+            }
         });
     }
 
@@ -1801,6 +1839,23 @@ const ActivityRegisterManagement = (function () {
     function bindEvents() {
         categoryField().addEventListener("change", renderItemOptions);
         form().addEventListener("submit", handleSubmit);
+        const extraTable = extraTbody().closest("table");
+        if (extraTable) {
+            extraTable.querySelectorAll(".table-sort-button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const key = button.dataset.sortKey;
+                    if (!key) return;
+                    if (extraSortKey === key) {
+                        extraSortDirection *= -1;
+                    } else {
+                        extraSortKey = key;
+                        extraSortDirection = 1;
+                    }
+                    updateExtraSortHeaders();
+                    renderExtraRows(lastExtraItems);
+                });
+            });
+        }
 
         extraCategoryField().addEventListener("change", renderExtraItemOptions);
         extraForm().addEventListener("submit", handleExtraSubmit);
@@ -1815,6 +1870,7 @@ const ActivityRegisterManagement = (function () {
             if (!initialized) {
                 initialized = true;
                 bindEvents();
+                updateExtraSortHeaders();
                 try {
                     await loadOptions();
                 } catch (err) {
@@ -1843,6 +1899,7 @@ const MonthlyReportManagement = (function () {
     const otherValue = () => document.getElementById("monthly-report-other");
     const activitySectionsContainer = () =>
         document.getElementById("monthly-report-activity-sections");
+    const eventsContainer = () => document.getElementById("monthly-report-events");
 
     const MONTH_STORAGE_KEY = "praesidium.selectedMonthlyReportMonth";
 
@@ -1903,6 +1960,27 @@ const MonthlyReportManagement = (function () {
             .join("");
     }
 
+    function renderLegioEvents(events) {
+        const container = eventsContainer();
+        if (!container) return;
+        container.innerHTML = events && events.length
+            ? events
+                  .map(
+                      (event) =>
+                          "<tr><td>" +
+                          escapeHtml(event.date) +
+                          "</td><td>" +
+                          escapeHtml(event.name) +
+                          "</td><td>" +
+                          escapeHtml(event.place || "-") +
+                          "</td><td>" +
+                          escapeHtml(event.status) +
+                          "</td></tr>"
+                  )
+                  .join("")
+            : '<tr><td colspan="4" class="table-empty">해당 월의 레지오행사가 없습니다.</td></tr>';
+    }
+
     async function loadReport(yearMonth) {
         rangeLabel().textContent = "불러오는 중...";
         officerValue().textContent = "-";
@@ -1915,6 +1993,7 @@ const MonthlyReportManagement = (function () {
         flowerValue().textContent = "-";
         otherValue().textContent = "-";
         renderActivitySections([]);
+        renderLegioEvents([]);
         try {
             const report = await fetchJson(
                 "/api/monthly-reports?yearMonth=" + encodeURIComponent(yearMonth)
@@ -1932,8 +2011,10 @@ const MonthlyReportManagement = (function () {
             flowerValue().textContent = formatAmount(report.flowerTotal);
             otherValue().textContent = formatAmount(report.otherExpenseTotal);
             renderActivitySections(report.activitySections);
+            renderLegioEvents(report.legioEvents);
         } catch (err) {
             rangeLabel().textContent = escapeHtml(err.message);
+            renderLegioEvents([]);
         }
     }
 

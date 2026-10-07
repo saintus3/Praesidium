@@ -375,10 +375,26 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>단원</th>
-                                        <th>카테고리</th>
-                                        <th>활동항목</th>
-                                        <th class="col-center">횟수</th>
+                                        <th aria-sort="ascending">
+                                            <button type="button" class="table-sort-button" data-sort-key="memberName">
+                                                단원 <span class="table-sort-indicator" aria-hidden="true">↑</span>
+                                            </button>
+                                        </th>
+                                        <th aria-sort="none">
+                                            <button type="button" class="table-sort-button" data-sort-key="categoryName">
+                                                카테고리 <span class="table-sort-indicator" aria-hidden="true"></span>
+                                            </button>
+                                        </th>
+                                        <th aria-sort="none">
+                                            <button type="button" class="table-sort-button" data-sort-key="activityTypeName">
+                                                활동항목 <span class="table-sort-indicator" aria-hidden="true"></span>
+                                            </button>
+                                        </th>
+                                        <th class="col-center" aria-sort="none">
+                                            <button type="button" class="table-sort-button" data-sort-key="count">
+                                                횟수 <span class="table-sort-indicator" aria-hidden="true"></span>
+                                            </button>
+                                        </th>
                                         <th class="col-center">작업</th>
                                     </tr>
                                 </thead>
@@ -535,6 +551,20 @@
                             <span class="monthly-report-stat-value" id="monthly-report-other">-</span>
                         </div>
                     </div>
+                    <h3 class="monthly-report-section-title">행사보고</h3>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>일자</th>
+                                    <th>행사명</th>
+                                    <th>장소</th>
+                                    <th>상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-report-events"></tbody>
+                        </table>
+                    </div>
                     <h3 class="monthly-report-section-title">주요활동내역</h3>
                     <div id="monthly-report-activity-sections" class="monthly-report-activity-sections"></div>
                 </div>
@@ -559,7 +589,7 @@
                     <h3 class="monthly-report-section-title">회계보고</h3>
                     <div class="monthly-report-summary monthly-report-finance-grid">
                         <div class="monthly-report-stat">
-                            <span class="monthly-report-stat-label">이월금</span>
+                            <span class="monthly-report-stat-label">지지난주 이월금</span>
                             <span class="monthly-report-stat-value" id="project-report-carry-over">-</span>
                         </div>
                         <div class="monthly-report-stat">

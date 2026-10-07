@@ -417,6 +417,19 @@ body {
     font-size: 12.5px;
 }
 
+.table-sort-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.table-sort-button:hover {
+    color: var(--color-text);
+}
+
 .data-table tbody tr:last-child td {
     border-bottom: none;
 }

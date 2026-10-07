@@ -3,6 +3,7 @@ package kr.savien.Praesidium.service
 import kr.savien.Praesidium.domain.Meeting
 import kr.savien.Praesidium.dto.MonthlyReportActivityItem
 import kr.savien.Praesidium.dto.MonthlyReportActivitySection
+import kr.savien.Praesidium.dto.MonthlyReportEvent
 import kr.savien.Praesidium.dto.MonthlyReportResponse
 import kr.savien.Praesidium.repository.ActivityCountRepository
 import kr.savien.Praesidium.repository.ActivityTypeRepository
@@ -11,11 +12,13 @@ import kr.savien.Praesidium.repository.FinanceRepository
 import kr.savien.Praesidium.repository.MeetingRepository
 import kr.savien.Praesidium.repository.MemberRepository
 import kr.savien.Praesidium.repository.OfficerTermRepository
+import kr.savien.Praesidium.repository.ScheduleEventRepository
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
 import java.time.LocalDate
+import java.time.YearMonth
 
 @Service
 @Transactional(readOnly = true)
@@ -26,7 +29,8 @@ class MonthlyReportService(
     private val attendanceRepository: AttendanceRepository,
     private val financeRepository: FinanceRepository,
     private val activityCountRepository: ActivityCountRepository,
-    private val activityTypeRepository: ActivityTypeRepository
+    private val activityTypeRepository: ActivityTypeRepository,
+    private val scheduleEventRepository: ScheduleEventRepository
 ) {
 
     companion object {
@@ -36,6 +40,7 @@ class MonthlyReportService(
         private const val INCOME_NAME = "지난주 비밀헌금"
         private const val DONATION_NAME = "의연금"
         private const val FLOWER_NAME = "꽃값"
+        private const val LEGIO_EVENT_MARKER = "[레지오행사]"
 
         /** 주요활동내역 - 기도 및 신심행위: (표시 라벨, 활동유형 정식명) 순서쌍 */
         private val PRAYER_ACTIVITY_LABELS = listOf(
@@ -61,10 +66,18 @@ class MonthlyReportService(
 
     /** 회차 날짜들을 기준으로 선택 가능한 "yyyy-MM" 목록을 최신순으로 반환한다. */
     fun availableMonths(): List<String> {
-        return meetingRepository.findAll()
+        val meetingMonths = meetingRepository.findAll()
             .mapNotNull { parseFlexibleDate(it.meetingDate) }
-            .map { "%04d-%02d".format(it.year, it.monthValue) }
+            .map { YearMonth.from(it) }
+        val legioEventMonths = scheduleEventRepository.findAllByOrderByEventDateAsc()
+            .filter { it.title.contains(LEGIO_EVENT_MARKER) || it.detail?.contains(LEGIO_EVENT_MARKER) == true }
+            .mapNotNull { parseFlexibleDate(it.eventDate) }
+            .map { YearMonth.from(it) }
+            .flatMap { listOf(it, it.minusMonths(1)) }
+
+        return (meetingMonths + legioEventMonths)
             .distinct()
+            .map { "%04d-%02d".format(it.year, it.monthValue) }
             .sortedDescending()
     }
 
@@ -72,6 +85,12 @@ class MonthlyReportService(
         if (!yearMonth.matches(Regex("\\d{4}-\\d{2}"))) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "년-월 형식이 올바르지 않습니다. (yearMonth=$yearMonth)")
         }
+        val reportMonth = try {
+            YearMonth.parse(yearMonth)
+        } catch (ex: Exception) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "년-월 형식이 올바르지 않습니다. (yearMonth=$yearMonth)")
+        }
+        val legioEvents = buildLegioEvents(reportMonth)
 
         val meetingsInMonth = meetingRepository.findAll()
             .filter { meeting ->
@@ -98,7 +117,8 @@ class MonthlyReportService(
                 donationTotal = 0,
                 flowerTotal = 0,
                 otherExpenseTotal = 0,
-                activitySections = buildActivitySections(emptyList())
+                activitySections = buildActivitySections(emptyList()),
+                legioEvents = legioEvents
             )
         }
 
@@ -181,8 +201,38 @@ class MonthlyReportService(
             donationTotal = donationTotal,
             flowerTotal = flowerTotal,
             otherExpenseTotal = otherExpenseTotal,
-            activitySections = activitySections
+            activitySections = activitySections,
+            legioEvents = legioEvents
         )
+    }
+
+    private fun buildLegioEvents(reportMonth: YearMonth): List<MonthlyReportEvent> {
+        val followingMonth = reportMonth.plusMonths(1)
+        return scheduleEventRepository.findAllByOrderByEventDateAsc()
+            .mapNotNull { event ->
+                if (!event.title.contains(LEGIO_EVENT_MARKER) &&
+                    event.detail?.contains(LEGIO_EVENT_MARKER) != true
+                ) {
+                    return@mapNotNull null
+                }
+
+                val eventDate = parseFlexibleDate(event.eventDate) ?: return@mapNotNull null
+                val eventMonth = YearMonth.from(eventDate)
+                val status = when (eventMonth) {
+                    reportMonth -> "실시"
+                    followingMonth -> "계획"
+                    else -> return@mapNotNull null
+                }
+                val name = event.title.replace(LEGIO_EVENT_MARKER, "").trim()
+                    .ifBlank { event.title }
+                MonthlyReportEvent(
+                    date = event.eventDate,
+                    name = name,
+                    place = event.detail?.takeIf { it.isNotBlank() },
+                    status = status
+                )
+            }
+            .sortedWith(compareBy<MonthlyReportEvent> { parseFlexibleDate(it.date) ?: LocalDate.MAX }.thenBy { it.name })
     }
 
     /** 선택된 회차 범위에 속한 모든 단원의 활동 횟수를 활동유형별로 합산하여 주요활동내역 섹션을 구성한다. */
